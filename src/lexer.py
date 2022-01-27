@@ -53,6 +53,15 @@ class CLexer:
         # Comparison Operators
         'COMP_EQUAL', 'COMP_NEQUAL', 'COMP_LT', 'COMP_GT', 'COMP_LTEQ', 'COMP_GTEQ',
 
+        #Logical Operators
+        'LOGIC_AND', 'LOGIC_OR', 'LOGIC_NOT'
+
+        #Bit Shift operators
+        'BIT_LEFT', 'BIT_RIGHT'
+
+        #Bitwise Logical Operators
+        'BIT_LOGIC_AND', 'BIT_LOGIC_OR', 'BIT_LOGIC_NOT', 'BIT_LOGIC_XOR'
+
         # Reference and dereference operators ( single and double pointers)
         'DOUBLE_POINT', 'DEREFER',
 
@@ -70,6 +79,20 @@ class CLexer:
     t_COMP_GT = r'>'
     t_COMP_LTEQ = r'<='
     t_COMP_GTEQ = r'>='
+
+    t_LOGIC_AND = r'&&'
+    t_LOGIC_OR = r'\|\|'
+    t_LOGIC_NOT = r'!'
+
+    t_BIT_LOGIC_AND = r'&'
+    t_BIT_LOGIC_OR = r'\|'
+    t_BIT_LOGIC_NOT = r'~'
+    t_BIT_LOGIC_XOR = r'^'
+    
+    t_BIT_LEFT = r'<<'
+    t_BIT_RIGHT = r'>>'
+
+
     literals = '\{\}\(\)+-*/%~=,'
 
     # 3.1.8 - 3.1.10
