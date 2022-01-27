@@ -1,29 +1,65 @@
 import ply.lex as lex
 import sys
 
+
 class CLexer:
 
     # Adding keywords
     reserved = {
-        #Data types
-        'int': 'INT', 'long': 'LONG', 'char': 'CHAR', 'float': 'float', 'double': 'DOUBLE',
-        #Other
+        # Data types
+        'int': 'INT', 'float': 'float', 'double': 'DOUBLE', 'long': 'LONG', 'char': 'CHAR',
+        # Other
+        'short': 'SHORT',
         'signed': 'SIGNED',
         'unsigned': 'unSIGNED',
+        'bool': 'BOOL',
+        'const': 'CONST',
+        'volatile': 'VOLATILE',
+        'printf': 'PRINTF',
+        'scanf': 'SCANF',
+        'fprintf': 'FPRINTF',
+        'fscanf': 'FSCANF',
+        'true': 'TRUE',
+        'false': 'FALSE',
+
+        # keywords for condtionals
         'if': 'IF', 'else': 'ELSE', 'break': 'BREAK', 'continue': 'CONTINUE',
-        'return': 'RETURN',
-        'void': 'VOID',
-        'struct': 'STRUCT'
+
+        # keywords for switch
+        'switch': 'SWITCH', 'default': 'DEFAULT', 'case': 'CASE',
+
+        # keywords for loops
+        'for': 'FOR', 'while': 'WHILE', 'do': 'DO',
+
+        # keywords used in functions
+        'void': 'VOID', 'return': 'RETURN',
+
+        # user defined data types
+        'struct': 'STRUCT', 'union': 'UNION',
+
+        # Math functions
+        'sqrt': 'SQRT', 'exp': 'EXP', 'floor': 'FLOOR', 'ceil': 'CEIL', 'abs': 'ABS', 'log': 'LOG', 'pow': 'POW',
+
+        # File I/O
+        'read': 'READ', 'write': 'WRITE'
     }
 
     # Adding tokens
     tokens = [
         'SEMICOLON',
         'ID',
-        #Constant types
+        # Constant types
         'CONST_STRING', 'CONST_CHAR', 'CONST_FLOAT', 'CONST_HEX', 'CONST_OCT', 'CONST_BIN', 'CONST_INT',
-        #Comparison Operators
-        'COMP_EQUAL', 'COMP_NEQUAL', 'COMP_LT', 'COMP_GT', 'COMP_LTEQ', 'COMP_GTEQ'
+        # Comparison Operators
+        'COMP_EQUAL', 'COMP_NEQUAL', 'COMP_LT', 'COMP_GT', 'COMP_LTEQ', 'COMP_GTEQ',
+
+        # Reference and dereference operators ( single and double pointers)
+        'DOUBLE_POINT', 'DEREFER',
+
+        # Member access Expressions
+        'MEMB_ACCESS'
+
+
     ] + list(reserved.values())
 
     # Regular expressions for tokens
@@ -34,7 +70,12 @@ class CLexer:
     t_COMP_GT = r'>'
     t_COMP_LTEQ = r'<='
     t_COMP_GTEQ = r'>='
-    literals = '\{\}\(\)+-*/%~='
+    literals = '\{\}\(\)+-*/%~=,'
+
+    # 3.1.8 - 3.1.10
+    t_DOUBLE_POINT = r'\*\*'
+    t_DEREFER = r'&'
+    t_MEMB_ACCESS = r'->'
 
     def t_CONST_STRING(self, t):
         r'(\".*?\")'
@@ -45,16 +86,16 @@ class CLexer:
         r'\'([^\\]|\\.)\''
         t.value = t.value[1:-1]
         return t
-    
+
     def t_CONST_FLOAT(self, t):
-        r'(\d+\.{,1}\d*|\d*\.{,1}\d+)([eE]{1}[+-]{,1}\d){,1}\d*'
+        r'(\d*([.]\d+)?([eE][+-]?\d+)) | (\d*[.])\d+ | (\d+[.])'
         return t
 
     def t_CONST_HEX(self, t):
         r'0[xX][0-9A-fa-f]+'
         t.value = int(t.value, 16)
         return t
-    
+
     def t_CONST_OCT(self, t):
         r'0[0-7]+'
         t.value = int(t.value, 8)
@@ -79,9 +120,9 @@ class CLexer:
         r'\n+'
         t.lexer.lineno += len(t.value)
 
-    def t_COMMENT(t):
-        r'(/\*(.|\n)*?\*/)|(//.*)'
-        pass
+    # def t_COMMENT(t):
+      #  r'(/\*(.|\n)*?\*/)|(//.*)'
+       # pass
 
     #t_ignore_COMMENT = r'(/\*(.|\n)*?\*/)|(//.*)'
     t_ignore = ' \t\v\r\f'
@@ -90,17 +131,20 @@ class CLexer:
         print("Illegal character '%s'" % t.value[0])
         t.lexer.skip(1)
 
-    def build(self,**kwargs):
+    def build(self, **kwargs):
         self.lexer = lex.lex(module=self, **kwargs)
 
     def tokenize(self, data):
         self.lexer.input(data)
-        print("Token".ljust(15, ' '), "Lexeme".ljust(15, ' '), "Line#".ljust(15, ' '), "Column#".ljust(15, ' '))
+        print("Token".ljust(15, ' '), "Lexeme".ljust(15, ' '),
+              "Line#".ljust(15, ' '), "Column#".ljust(15, ' '))
         while True:
             tok = self.lexer.token()
             if not tok:
                 break
-            print(tok.type.ljust(15, ' '), tok.value.ljust(15, ' '), str(tok.lineno).ljust(15, ' '), str(tok.lexpos).ljust(15, ' '))
+            print(tok.type.ljust(15, ' '), str(tok.value).ljust(15, ' '), str(
+                tok.lineno).ljust(15, ' '), str(tok.lexpos).ljust(15, ' '))
+
 
 l = CLexer()
 l.build()
