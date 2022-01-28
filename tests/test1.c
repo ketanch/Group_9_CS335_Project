@@ -1,7 +1,4 @@
-int main()
-{
-    int k = 4;
-    int **m = &k,m = p;
-    int s = p*p;
-    return 0;
+#define M 4
+int main(){
+    int k = (4|3);
 }

@@ -7,11 +7,11 @@ class CLexer:
     # Adding keywords
     reserved = {
         # Data types
-        'int': 'INT', 'float': 'float', 'double': 'DOUBLE', 'long': 'LONG', 'char': 'CHAR',
+        'int': 'INT', 'float': 'FLOAT', 'double': 'DOUBLE', 'long': 'LONG', 'char': 'CHAR',
         # Other
         'short': 'SHORT',
         'signed': 'SIGNED',
-        'unsigned': 'unSIGNED',
+        'unsigned': 'UNSIGNED',
         'bool': 'BOOL',
         'const': 'CONST',
         'volatile': 'VOLATILE',
@@ -32,44 +32,47 @@ class CLexer:
         'for': 'FOR', 'while': 'WHILE', 'do': 'DO',
 
         # keywords used in functions
-        'void': 'VOID', 'return': 'RETURN',
+        'void': 'VOID', 'return': 'RETURN', 'goto': 'GOTO',
 
         # user defined data types
         'struct': 'STRUCT', 'union': 'UNION',
 
         # Math functions
-        'sqrt': 'SQRT', 'exp': 'EXP', 'floor': 'FLOOR', 'ceil': 'CEIL', 'abs': 'ABS', 'log': 'LOG', 'pow': 'POW',
+        'sqrt': 'SQRT', 'exp': 'EXP', 'floor': 'FLOOR', 'ceil': 'CEIL', 'abs': 'ABS', 'log': 'LOG', 'pow': 'POW', 'sizeof': 'SIZEOF',
 
         # File I/O
-        'read': 'READ', 'write': 'WRITE'
+        'read': 'READ', 'write': 'WRITE',
+
+        # define for macro
+        'define': 'DEFINE'
     }
 
     # Adding tokens
     tokens = [
-        'SEMICOLON',
+        'SEMICOLON', 'COLON',
         'ID',
         # Constant types
         'CONST_STRING', 'CONST_CHAR', 'CONST_FLOAT', 'CONST_HEX', 'CONST_OCT', 'CONST_BIN', 'CONST_INT',
         # Comparison Operators
         'COMP_EQUAL', 'COMP_NEQUAL', 'COMP_LT', 'COMP_GT', 'COMP_LTEQ', 'COMP_GTEQ',
 
-        #Logical Operators
-        'LOGIC_AND', 'LOGIC_OR', 'LOGIC_NOT'
+        # Logical Operators
+        'LOGIC_AND', 'LOGIC_OR', 'LOGIC_NOT',
 
-        #Bit Shift operators
-        'BIT_LEFT', 'BIT_RIGHT'
+        # Bit Shift operators
+        'BIT_LEFT', 'BIT_RIGHT',
 
-        #Bitwise Logical Operators
-        'BIT_LOGIC_AND', 'BIT_LOGIC_OR', 'BIT_LOGIC_NOT', 'BIT_LOGIC_XOR'
+        # Bitwise Logical Operators
+        'BIT_LOGIC_OR', 'BIT_LOGIC_NOT', 'BIT_LOGIC_XOR',
 
-        #Assignment Operators
-        'ASSIGN', 'ADD_ASSIGN', 'SUB_ASSIGN', 'MUL_ASSIGN', 'DIV_ASSIGN', 'MOD_ASSIGN', 'BIL_ASSIGN', 'BIR_ASSIGN', 'AND_ASSIGN', 'OR_ASSIGN', 'XOR_ASSIGN'
+        # Assignment Operators
+        'ASSIGN', 'ADD_ASSIGN', 'SUB_ASSIGN', 'MUL_ASSIGN', 'DIV_ASSIGN', 'MOD_ASSIGN', 'BIL_ASSIGN', 'BIR_ASSIGN', 'AND_ASSIGN', 'OR_ASSIGN', 'XOR_ASSIGN',
 
-        #Unary_Operators
-        'ADDU', 'SUBU', 'ANDU', 'SIZEOF'
+        # Unary_Operators
+        'ADDU', 'SUBU',
 
         # Reference and dereference operators ( single and double pointers)
-        'DOUBLE_POINT', 'DEREFER',
+        'DOUBLE_POINT',
 
         # Member access Expressions
         'MEMB_ACCESS'
@@ -78,7 +81,25 @@ class CLexer:
     ] + list(reserved.values())
 
     # Regular expressions for tokens
+
     t_SEMICOLON = r';'
+    t_COLON = r':'
+
+    t_ASSIGN = r'='
+    t_ADD_ASSIGN = r'\+='
+    t_SUB_ASSIGN = r'-='
+    t_MUL_ASSIGN = r'\*='
+    t_DIV_ASSIGN = r'/='
+    t_MOD_ASSIGN = r'%='
+    t_BIL_ASSIGN = r'<<='
+    t_BIR_ASSIGN = r'>>='
+    t_AND_ASSIGN = r'&='
+    t_OR_ASSIGN = r'\|='
+    t_XOR_ASSIGN = r'\^='
+
+    t_ADDU = r'\+\+'
+    t_SUBU = r'--'
+
     t_COMP_EQUAL = r'=='
     t_COMP_NEQUAL = r'!='
     t_COMP_LT = r'<'
@@ -90,37 +111,18 @@ class CLexer:
     t_LOGIC_OR = r'\|\|'
     t_LOGIC_NOT = r'!'
 
-    t_BIT_LOGIC_AND = r'&'
-    t_BIT_LOGIC_OR = r'\|'
-    t_BIT_LOGIC_NOT = r'~'
-    t_BIT_LOGIC_XOR = r'^'
-    
     t_BIT_LEFT = r'<<'
     t_BIT_RIGHT = r'>>'
 
-    t_ASSIGN = r'='
-    t_ADD_ASSIGN = r'+='
-    t_SUB_ASSIGN = r'-='
-    t_MUL_ASSIGN = r'*='
-    t_DIV_ASSIGN = r'/='
-    t_MOD_ASSIGN = r'%='
-    t_BIL_ASSIGN = r'<<='
-    t_BIR_ASSIGN = r'>>='
-    t_AND_ASSIGN = r'&='
-    t_OR_ASSIGN = r'|='
-    t_XOR_ASSIGN = r'^='
-    
-    t_ADDU = r'++'
-    t_SUBU = r'--'
-    t_ANDU = r'&'
-    t_SIZEOF = r'sizeof'
-
-    literals = '\{\}\(\)+-*/%~=,'
+    t_BIT_LOGIC_OR = r'\|'
+    t_BIT_LOGIC_XOR = r'\^'
+    t_BIT_LOGIC_NOT = r'~'
 
     # 3.1.8 - 3.1.10
     t_DOUBLE_POINT = r'\*\*'
-    t_DEREFER = r'&'
     t_MEMB_ACCESS = r'->'
+
+    literals = '+-*/%&,?\.\{\}\(\)#'
 
     def t_CONST_STRING(self, t):
         r'(\".*?\")'
@@ -165,9 +167,12 @@ class CLexer:
         r'\n+'
         t.lexer.lineno += len(t.value)
 
-    # def t_COMMENT(t):
-      #  r'(/\*(.|\n)*?\*/)|(//.*)'
-       # pass
+    def t_COMMENT(self, t):
+        r'(/\*(.|\n)*?\*/)|(//.*)'
+        for c in t.value:
+            if c == '\n':
+                t.lexer.lineno += 1
+        pass
 
     #t_ignore_COMMENT = r'(/\*(.|\n)*?\*/)|(//.*)'
     t_ignore = ' \t\v\r\f'
