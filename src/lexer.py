@@ -62,6 +62,12 @@ class CLexer:
         #Bitwise Logical Operators
         'BIT_LOGIC_AND', 'BIT_LOGIC_OR', 'BIT_LOGIC_NOT', 'BIT_LOGIC_XOR'
 
+        #Assignment Operators
+        'ASSIGN', 'ADD_ASSIGN', 'SUB_ASSIGN', 'MUL_ASSIGN', 'DIV_ASSIGN', 'MOD_ASSIGN', 'BIL_ASSIGN', 'BIR_ASSIGN', 'AND_ASSIGN', 'OR_ASSIGN', 'XOR_ASSIGN'
+
+        #Unary_Operators
+        'ADDU', 'SUBU', 'ANDU', 'SIZEOF'
+
         # Reference and dereference operators ( single and double pointers)
         'DOUBLE_POINT', 'DEREFER',
 
@@ -92,6 +98,22 @@ class CLexer:
     t_BIT_LEFT = r'<<'
     t_BIT_RIGHT = r'>>'
 
+    t_ASSIGN = r'='
+    t_ADD_ASSIGN = r'+='
+    t_SUB_ASSIGN = r'-='
+    t_MUL_ASSIGN = r'*='
+    t_DIV_ASSIGN = r'/='
+    t_MOD_ASSIGN = r'%='
+    t_BIL_ASSIGN = r'<<='
+    t_BIR_ASSIGN = r'>>='
+    t_AND_ASSIGN = r'&='
+    t_OR_ASSIGN = r'|='
+    t_XOR_ASSIGN = r'^='
+    
+    t_ADDU = r'++'
+    t_SUBU = r'--'
+    t_ANDU = r'&'
+    t_SIZEOF = r'sizeof'
 
     literals = '\{\}\(\)+-*/%~=,'
 
