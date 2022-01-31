@@ -12,4 +12,5 @@ int main()
     k &= 4;
     k |= 4;
     k ^= 4;
+    return 0;
 }

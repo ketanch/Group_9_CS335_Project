@@ -19,8 +19,12 @@ class CLexer:
         'scanf': 'SCANF',
         'fprintf': 'FPRINTF',
         'fscanf': 'FSCANF',
+        'fopen': 'FOPEN',
+        'fclose': 'FCLOSE',
+        'main': 'MAIN',
         'true': 'TRUE',
         'false': 'FALSE',
+        'FILE': 'FILE',
 
         # keywords for condtionals
         'if': 'IF', 'else': 'ELSE', 'break': 'BREAK', 'continue': 'CONTINUE',
@@ -122,7 +126,7 @@ class CLexer:
     t_DOUBLE_POINT = r'\*\*'
     t_MEMB_ACCESS = r'->'
 
-    literals = '+-*/%&,?\.\{\}\(\)#'
+    literals = '+-*/%&,?\.\{\}\(\)#[]'
 
     def t_CONST_STRING(self, t):
         r'(\".*?\")'
