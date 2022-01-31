@@ -5,6 +5,6 @@ int main(){
     printf("%d",x);
     float f=34.56;
     printf("\n%f\n",f);
-    printf("\t Hello \"Joe\"");
+    printf("\t Hello %d %d %D % D\"Joe\"");
     return 0;
 }

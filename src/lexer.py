@@ -126,8 +126,7 @@ class CLexer:
     literals = '+-*/%&,?\.\{\}\(\)#[]'
 
     def t_CONST_STRING(self, t):
-        r'(\".*?\")'
-        t.value = t.value[1:-1]
+        r'(\"(\\.|[^\\"])*?\")'
         return t
 
     def t_CONST_CHAR(self, t):
