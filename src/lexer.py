@@ -44,9 +44,6 @@ class CLexer:
         # Math functions
         'sqrt': 'SQRT', 'exp': 'EXP', 'floor': 'FLOOR', 'ceil': 'CEIL', 'abs': 'ABS', 'log': 'LOG', 'pow': 'POW', 'sizeof': 'SIZEOF',
 
-        # File I/O
-        'read': 'READ', 'write': 'WRITE',
-
         # define for macro
         'define': 'DEFINE'
     }
