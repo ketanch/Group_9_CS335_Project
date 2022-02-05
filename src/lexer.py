@@ -140,22 +140,22 @@ class CLexer:
 
     def t_CONST_HEX(self, t):
         r'0[xX][0-9A-fa-f]+'
-        t.value = int(t.value, 16)
+        #t.value = int(t.value, 16)
         return t
 
     def t_CONST_OCT(self, t):
         r'0[0-7]+'
-        t.value = int(t.value, 8)
+        #t.value = int(t.value, 8)
         return t
 
     def t_CONST_BIN(self, t):
         r'0b[01]+'
-        t.value = int(t.value, 2)
+        #t.value = int(t.value, 2)
         return t
 
     def t_CONST_INT(self, t):
         r'\d+'
-        t.value = int(t.value)
+        #t.value = int(t.value)
         return t
 
     def t_ID(self, t):
