@@ -131,7 +131,7 @@ class CLexer:
 
     def t_CONST_CHAR(self, t):
         r'\'([^\\]|\\.)\''
-        t.value = t.value[1:-1]
+        #t.value = t.value[1:-1]
         return t
 
     def t_CONST_FLOAT(self, t):
@@ -139,7 +139,7 @@ class CLexer:
         return t
 
     def t_CONST_HEX(self, t):
-        r'0[xX][0-9A-fa-f]+'
+        r'0[xX][0-9A-Fa-f]+'
         #t.value = int(t.value, 16)
         return t
 
