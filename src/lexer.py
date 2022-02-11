@@ -196,6 +196,7 @@ class CLexer:
                 tok.lineno).ljust(15, ' '), str(tok.lexpos).ljust(15, ' '))
 
 
-l = CLexer()
-l.build()
-l.tokenize(open(sys.argv[1], 'r').read())
+if __name__ == '__main__':
+    l = CLexer()
+    l.build()
+    l.tokenize(open(sys.argv[1], 'r').read())

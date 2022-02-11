@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+#Parser generated files
+src/parser.out
+src/parsetab.py
