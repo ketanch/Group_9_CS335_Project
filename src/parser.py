@@ -24,9 +24,9 @@ class CParser:
 
     def p_constant(self, p):
         '''constant : CONST_INT
-                    | CONST_CHAR
+                    | CONST CHAR
                     | CONST_FLOAT
-                    | CONST_ HEX
+                    | CONST_HEX
                     | CONST_OCT
                     | CONST_BIN        
         '''
@@ -47,7 +47,7 @@ class CParser:
         # SOME MISSING RULES
 
     def p_argument_expression_list(self, p):
-        '''argument_expression_list : assigment expression
+        '''argument_expression_list : assignment_expression
                                     | argument_expression_list ',' assignment_expression
         '''
 
@@ -90,9 +90,9 @@ class CParser:
     def p_relational_expression(self, p):
         '''relational_expression    : shift_expression
                                     | relational_expression COMP_LT shift_expression
-                                    | relational_expression COMPT_GT shift_expression
-                                    | relational_expression COMPT_LTEQ shift_expression
-                                    | relational_expression COMPT_ GTEQ shift_expression
+                                    | relational_expression COMP_GT shift_expression
+                                    | relational_expression COMP_LTEQ shift_expression
+                                    | relational_expression COMP_GTEQ shift_expression
         '''
 
     def p_equality_expression(self, p):
@@ -425,7 +425,7 @@ parser = CParser()
 parser.build()
 l = CLexer()
 l.build()
-while True:
+for i in range(0,1):
     try:
         s = open(sys.argv[1], 'r').read()
     except EOFError:

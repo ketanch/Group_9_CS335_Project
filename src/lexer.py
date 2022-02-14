@@ -24,7 +24,7 @@ class CLexer:
         'main': 'MAIN',
         'true': 'TRUE',
         'false': 'FALSE',
-        'FILE': 'FILE',
+        'file': 'FILE',
 
         # keywords for condtionals
         'if': 'IF', 'else': 'ELSE', 'break': 'BREAK', 'continue': 'CONTINUE',
