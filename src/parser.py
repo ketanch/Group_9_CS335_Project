@@ -9,6 +9,19 @@ class CParser:
     literals = CLexer.literals
     #reserved = CLexer.reserved
 
+    precedence = (
+        ('left', 'LOGIC_OR'),
+        ('left', 'LOGIC_AND'),
+        ('left', 'BIT_LOGIC_OR'),
+        ('left', 'BIT_LOGIC_XOR'),
+        ('left', '&'),
+        ('left', 'COMP_EQUAL', 'COMP_NEQUAL'),
+        ('left', 'COMP_GT', 'COMP_GTEQ', 'COMP_LT', 'COMP_LTEQ'),
+        ('left', 'BIT_RIGHT', 'BIT_LEFT'),
+        ('left', '+', '-'),
+        ('left', '*', '/', '%')
+    )
+
     def p_primary_expression(self, p):
         '''primary_expression   : ID
                                 | constant
@@ -21,8 +34,6 @@ class CParser:
             p[0] = p[2]
         # to look again FUNC_NAME in CONST_String
 
-# MISSING generic_selection
-
     def p_constant(self, p):
         '''constant : CONST_INT
                     | CONST_CHAR
@@ -31,10 +42,9 @@ class CParser:
                     | CONST_OCT
                     | CONST_BIN        
         '''
-        # p[0] = p[1]
-    # Missing enumeration_constant string generic_selection generic_assoc_list generic_association
+        p[0] = p[1]
 
-    def p_postfix_expression(slef, p):
+    def p_postfix_expression(self, p):
         '''postfix_expression   : primary_expression
                                 | postfix_expression '[' expression ']'
                                 | postfix_expression '(' ')'
@@ -43,9 +53,9 @@ class CParser:
                                 | postfix_expression MEMB_ACCESS ID
                                 | postfix_expression ADDU
                                 | postfix_expression SUBU
-
+                                | '(' type_name ')' '{' initializer_list '}'
+                                | '(' type_name ')' '{' initializer_list ',' '}'
         '''
-        # SOME MISSING RULES
 
     def p_argument_expression_list(self, p):
         '''argument_expression_list : assignment_expression
@@ -56,6 +66,7 @@ class CParser:
         '''unary_expression : postfix_expression
                             | ADDU unary_expression
                             | SUBU unary_expression
+                            | unary_operator unary_expression
                             | SIZEOF unary_expression
                             | SIZEOF '(' type_name ')'
         '''
@@ -177,7 +188,7 @@ class CParser:
         '''
 
     def p_init_declarator(self, p):
-        '''init_declarator  : declarator '=' initializer
+        '''init_declarator  : declarator ASSIGN  initializer
                             | declarator 
         '''
 
@@ -212,8 +223,8 @@ class CParser:
      '''
 
     def p_struct_declaration(self, p):
-        '''struct_declaration   : specifier_qualifier_list
-                                | specifier_qualifier_list specifier_qualifier_list ';'
+        '''struct_declaration   : specifier_qualifier_list SEMICOLON
+                                | specifier_qualifier_list struct_declarator_list ';'
         '''
 
     def p_specifier_qualifier_list(self, p):
@@ -231,14 +242,14 @@ class CParser:
     def p_struct_declarator(self, p):
         '''struct_declarator   : ':' constant_expression
                                |  declarator ':' constant_expression
-                               | declarator
+                               |  declarator
         '''
 
     def p_type_qualifier(self, p):
         '''type_qualifier   : CONST
                             | VOLATILE
         '''
-        #p[0] = p[1]
+        p[0] = p[1]
 
     def p_declarator(self, p):
         '''declarator   : pointer direct_declarator
@@ -251,6 +262,7 @@ class CParser:
                                 | direct_declarator '[' ']'
                                 | direct_declarator '[' '*' ']'
                                 | direct_declarator '[' type_qualifier_list '*' ']'
+                                | direct_declarator '[' type_qualifier_list assignment_expression ']'
                                 | direct_declarator '[' type_qualifier_list ']'
                                 | direct_declarator '[' assignment_expression ']'
                                 | direct_declarator '(' parameter_type_list ')'
@@ -331,6 +343,7 @@ class CParser:
         '''initializer_list : initializer
                             | initializer_list ',' initializer
         '''
+    # we are not implementing designation list
 
     def p_statement(self, p):
         '''statement    : labeled_statement
@@ -379,7 +392,7 @@ class CParser:
                                 | FOR '(' expression_statement expression_statement ')' statement
                                 | FOR '(' expression_statement expression_statement expression ')' statement  
                                 | FOR '(' declaration expression_statement ')' statement
-                                    | FOR '(' declaration expression_statement expression ')' statement                                                
+                                | FOR '(' declaration expression_statement expression ')' statement                                                
         '''
 
     def p_jump_statement(self, p):
