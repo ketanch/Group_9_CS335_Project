@@ -15,16 +15,17 @@ class CParser:
                                 | CONST_STRING   
                                 | '(' expression ')'
         '''
+        if(len(p) == 2):
+            p[0] = p[1]
+        else:
+            p[0] = p[2]
         # to look again FUNC_NAME in CONST_String
-        # if(len(p) == 2):
-        #     p[0] = p[1]
-        # else:
-        #     p[0] = p[2]
+
 # MISSING generic_selection
 
     def p_constant(self, p):
         '''constant : CONST_INT
-                    | CONST CHAR
+                    | CONST_CHAR
                     | CONST_FLOAT
                     | CONST_HEX
                     | CONST_OCT
@@ -413,7 +414,8 @@ class CParser:
         print("Syntax error in input!")
 
     def build(self, **kwargs):
-        self.parser = yacc.yacc(module=self, **kwargs)
+        self.parser = yacc.yacc(
+            start='translation_unit', module=self, **kwargs)
 
     def parse_inp(self, input):
         result = self.parser.parse(input)
@@ -425,7 +427,7 @@ parser = CParser()
 parser.build()
 l = CLexer()
 l.build()
-for i in range(0,1):
+for i in range(0, 1):
     try:
         s = open(sys.argv[1], 'r').read()
     except EOFError:
