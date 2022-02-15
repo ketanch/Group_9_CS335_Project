@@ -1,4 +1,2 @@
-int func(){
-    int a = 4;
-    int k  =4;
-}
+#define AREA(l,b) (l+b);
+int tmp(int a,int b);

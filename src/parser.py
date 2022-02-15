@@ -102,7 +102,7 @@ class CParser:
     def p_relational_expression(self, p):
         '''relational_expression    : shift_expression
                                     | relational_expression '<' shift_expression
-                                    | relational_expression > shift_expression
+                                    | relational_expression '>' shift_expression
                                     | relational_expression COMP_LTEQ shift_expression
                                     | relational_expression COMP_GTEQ shift_expression
         '''
@@ -411,8 +411,11 @@ class CParser:
     def p_external_declaration(self, p):
         '''external_declaration : function_definition
                                 | declaration
+                                | '#' DEFINE ID constant ';'
+                                | '#' DEFINE ID CONST_STRING ';'
+                                | '#' DEFINE ID '(' identifier_list ')' '(' expression ')' ';'
         '''
-
+    
     def p_function_definition(self, p):
         '''function_definition  : declaration_specifiers declarator declaration_list compound_statement
                                 | declaration_specifiers declarator compound_statement                                                                              
