@@ -1,1 +1,3 @@
-int a=true;
+int main(){
+    int a=5;
+}

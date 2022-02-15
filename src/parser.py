@@ -262,7 +262,8 @@ class CParser:
         '''
 
     def p_direct_declarator(self, p):
-        '''direct_declarator    : ID
+        '''direct_declarator    : MAIN
+                                | ID
                                 | '(' declarator ')'
                                 | direct_declarator '[' ']'
                                 | direct_declarator '[' '*' ']'
@@ -424,7 +425,8 @@ class CParser:
     
     def p_function_definition(self, p):
         '''function_definition  : declaration_specifiers declarator declaration_list compound_statement
-                                | declaration_specifiers declarator compound_statement                                                                              
+                                | declaration_specifiers declarator compound_statement  
+                                                                              
         '''
 
     def p_declaration_list(self, p):
