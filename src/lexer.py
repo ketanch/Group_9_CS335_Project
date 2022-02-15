@@ -83,10 +83,10 @@ class CLexer:
 
     # Regular expressions for tokens
 
-    t_SEMICOLON = r';'
-    t_COLON = r':'
+    # t_SEMICOLON = r';'
+    # t_COLON = r':'
 
-    t_ASSIGN = r'='
+    # t_ASSIGN = r'='
     t_ADD_ASSIGN = r'\+='
     t_SUB_ASSIGN = r'-='
     t_MUL_ASSIGN = r'\*='
@@ -103,8 +103,8 @@ class CLexer:
 
     t_COMP_EQUAL = r'=='
     t_COMP_NEQUAL = r'!='
-    t_COMP_LT = r'<'
-    t_COMP_GT = r'>'
+    # t_COMP_LT = r'<'
+    # t_COMP_GT = r'>'
     t_COMP_LTEQ = r'<='
     t_COMP_GTEQ = r'>='
 
@@ -115,15 +115,15 @@ class CLexer:
     t_BIT_LEFT = r'<<'
     t_BIT_RIGHT = r'>>'
 
-    t_BIT_LOGIC_OR = r'\|'
-    t_BIT_LOGIC_XOR = r'\^'
-    t_BIT_LOGIC_NOT = r'~'
+    # t_BIT_LOGIC_OR = r'\|'
+    # t_BIT_LOGIC_XOR = r'\^'
+    # t_BIT_LOGIC_NOT = r'~'
 
     # 3.1.8 - 3.1.10
     t_DOUBLE_POINT = r'\*\*'
     t_MEMB_ACCESS = r'->'
 
-    literals = '+-*/%&,?.{}()#[]'
+    literals = '+-*/%&,?.{}()#[];:=<>~\|\^'
 
     def t_CONST_STRING(self, t):
         r'(\"(\\.|[^\\"])*?\")'

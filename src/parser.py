@@ -12,11 +12,11 @@ class CParser:
     precedence = (
         ('left', 'LOGIC_OR'),
         ('left', 'LOGIC_AND'),
-        ('left', 'BIT_LOGIC_OR'),
-        ('left', 'BIT_LOGIC_XOR'),
+        ('left', '\|'),
+        ('left', '\^'),
         ('left', '&'),
         ('left', 'COMP_EQUAL', 'COMP_NEQUAL'),
-        ('left', 'COMP_GT', 'COMP_GTEQ', 'COMP_LT', 'COMP_LTEQ'),
+        ('left', '>', 'COMP_GTEQ', '<', 'COMP_LTEQ'),
         ('left', 'BIT_RIGHT', 'BIT_LEFT'),
         ('left', '+', '-'),
         ('left', '*', '/', '%')
@@ -76,7 +76,7 @@ class CParser:
                             | '*'
                             | '+'
                             | '-'
-                            | BIT_LOGIC_NOT
+                            | '~'
                             | '!'                      
         '''
 
@@ -101,8 +101,8 @@ class CParser:
 
     def p_relational_expression(self, p):
         '''relational_expression    : shift_expression
-                                    | relational_expression COMP_LT shift_expression
-                                    | relational_expression COMP_GT shift_expression
+                                    | relational_expression '<' shift_expression
+                                    | relational_expression > shift_expression
                                     | relational_expression COMP_LTEQ shift_expression
                                     | relational_expression COMP_GTEQ shift_expression
         '''
@@ -120,12 +120,12 @@ class CParser:
 
     def p_exclusive_or_expression(self, p):
         '''exclusive_or_expression  : and_expression
-                                    | exclusive_or_expression BIT_LOGIC_XOR and_expression
+                                    | exclusive_or_expression '\^' and_expression
         '''
 
     def p_inclusive_or_expression(self, p):
         '''inclusive_or_expression  : exclusive_or_expression
-                                    | inclusive_or_expression BIT_LOGIC_OR exclusive_or_expression
+                                    | inclusive_or_expression '\|' exclusive_or_expression
         '''
 
     def p_logical_and_expression(self, p):
@@ -140,7 +140,7 @@ class CParser:
 
     def p_conditional_expression(self, p):
         '''conditional_expression   : logical_or_expression
-                                    | logical_or_expression '?' expression COLON conditional_expression
+                                    | logical_or_expression '?' expression ':' conditional_expression
         '''
 
     def p_assignment_expression(self, p):
@@ -149,7 +149,7 @@ class CParser:
         '''
 
     def p_assignment_operator(self, p):
-        '''assignment_operator  : ASSIGN
+        '''assignment_operator  : '='
                                 | MUL_ASSIGN
                                 | DIV_ASSIGN
                                 | MOD_ASSIGN
@@ -171,8 +171,8 @@ class CParser:
         '''constant_expression : conditional_expression'''
 
     def p_declaration(self, p):
-        '''declaration  : declaration_specifiers SEMICOLON
-                        | declaration_specifiers init_declarator_list SEMICOLON
+        '''declaration  : declaration_specifiers ';'
+                        | declaration_specifiers init_declarator_list ';'
         '''
 
     def p_declaration_specifiers(self, p):
@@ -188,7 +188,7 @@ class CParser:
         '''
 
     def p_init_declarator(self, p):
-        '''init_declarator  : declarator ASSIGN  initializer
+        '''init_declarator  : declarator '='  initializer
                             | declarator 
         '''
 
@@ -223,7 +223,7 @@ class CParser:
      '''
 
     def p_struct_declaration(self, p):
-        '''struct_declaration   : specifier_qualifier_list SEMICOLON
+        '''struct_declaration   : specifier_qualifier_list ';'
                                 | specifier_qualifier_list struct_declarator_list ';'
         '''
 
@@ -355,9 +355,9 @@ class CParser:
         '''
 
     def p_labeled_statement(self, p):
-        '''labeled_statement    : ID COLON statement 
-                                | CASE constant_expression COLON statement
-                                | DEFAULT COLON statement
+        '''labeled_statement    : ID ':' statement 
+                                | CASE constant_expression ':' statement
+                                | DEFAULT ':' statement
         '''
 
     def p_compound_statement(self, p):
@@ -376,8 +376,8 @@ class CParser:
         '''
 
     def p_expression_statement(self, p):
-        '''expression_statement : SEMICOLON
-                                | expression SEMICOLON
+        '''expression_statement : ';'
+                                | expression ';'
         '''
 
     def p_selection_statement(self, p):
@@ -388,7 +388,7 @@ class CParser:
 
     def p_iteration_statement(self, p):
         '''iteration_statement  : WHILE '(' expression ')' statement
-                                | DO statement WHILE '(' expression ')' SEMICOLON
+                                | DO statement WHILE '(' expression ')' ';'
                                 | FOR '(' expression_statement expression_statement ')' statement
                                 | FOR '(' expression_statement expression_statement expression ')' statement  
                                 | FOR '(' declaration expression_statement ')' statement
@@ -396,11 +396,11 @@ class CParser:
         '''
 
     def p_jump_statement(self, p):
-        '''jump_statement   : GOTO ID SEMICOLON
-                            | CONTINUE SEMICOLON
-                            | BREAK SEMICOLON
-                            | RETURN SEMICOLON
-                            | RETURN expression SEMICOLON
+        '''jump_statement   : GOTO ID ';'
+                            | CONTINUE ';'
+                            | BREAK ';'
+                            | RETURN ';'
+                            | RETURN expression ';'
         '''
 
     def p_translation_unit(self, p):
