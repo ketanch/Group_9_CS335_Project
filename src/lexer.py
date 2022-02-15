@@ -123,7 +123,7 @@ class CLexer:
     t_DOUBLE_POINT = r'\*\*'
     t_MEMB_ACCESS = r'->'
 
-    literals = '+-*/%&,?.{}()#[];:=<>~\|\^'
+    literals = '+-*/%&,?.{}()#[];:=<>~|^'
 
     def t_CONST_STRING(self, t):
         r'(\"(\\.|[^\\"])*?\")'

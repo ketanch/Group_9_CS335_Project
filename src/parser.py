@@ -12,8 +12,8 @@ class CParser:
     precedence = (
         ('left', 'LOGIC_OR'),
         ('left', 'LOGIC_AND'),
-        ('left', '\|'),
-        ('left', '\^'),
+        ('left', '|'),
+        ('left', '^'),
         ('left', '&'),
         ('left', 'COMP_EQUAL', 'COMP_NEQUAL'),
         ('left', '>', 'COMP_GTEQ', '<', 'COMP_LTEQ'),
@@ -120,12 +120,12 @@ class CParser:
 
     def p_exclusive_or_expression(self, p):
         '''exclusive_or_expression  : and_expression
-                                    | exclusive_or_expression '\^' and_expression
+                                    | exclusive_or_expression '^' and_expression
         '''
 
     def p_inclusive_or_expression(self, p):
         '''inclusive_or_expression  : exclusive_or_expression
-                                    | inclusive_or_expression '\|' exclusive_or_expression
+                                    | inclusive_or_expression '|' exclusive_or_expression
         '''
 
     def p_logical_and_expression(self, p):
