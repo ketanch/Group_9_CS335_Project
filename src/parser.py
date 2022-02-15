@@ -40,7 +40,9 @@ class CParser:
                     | CONST_FLOAT
                     | CONST_HEX
                     | CONST_OCT
-                    | CONST_BIN        
+                    | CONST_BIN    
+                    | TRUE
+                    | FALSE  
         '''
         p[0] = p[1]
 
@@ -56,6 +58,7 @@ class CParser:
                                 | '(' type_name ')' '{' initializer_list '}'
                                 | '(' type_name ')' '{' initializer_list ',' '}'
         '''
+        
 
     def p_argument_expression_list(self, p):
         '''argument_expression_list : assignment_expression
@@ -181,6 +184,7 @@ class CParser:
                                     | type_qualifier
                                     | type_qualifier declaration_specifiers
         '''
+        
 
     def p_init_declarator_list(self, p):
         '''init_declarator_list : init_declarator
@@ -205,6 +209,7 @@ class CParser:
                             | BOOL
                             | struct_or_union_specifier
         '''
+        
 
     def p_struct_or_union_specifier(self, p):
         '''struct_or_union_specifier    : struct_or_union '{' struct_declaration_list '}'
@@ -338,6 +343,7 @@ class CParser:
                         | '{' initializer_list ',' '}'   
                         | assignment_expression                             
         '''
+        
 
     def p_initializer_list(self, p):
         '''initializer_list : initializer

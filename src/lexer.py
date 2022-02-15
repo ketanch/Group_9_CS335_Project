@@ -50,12 +50,11 @@ class CLexer:
 
     # Adding tokens
     tokens = [
-        'SEMICOLON', 'COLON',
         'ID',
         # Constant types
         'CONST_STRING', 'CONST_CHAR', 'CONST_FLOAT', 'CONST_HEX', 'CONST_OCT', 'CONST_BIN', 'CONST_INT',
         # Comparison Operators
-        'COMP_EQUAL', 'COMP_NEQUAL', 'COMP_LT', 'COMP_GT', 'COMP_LTEQ', 'COMP_GTEQ',
+        'COMP_EQUAL', 'COMP_NEQUAL', 'COMP_LTEQ', 'COMP_GTEQ',
 
         # Logical Operators
         'LOGIC_AND', 'LOGIC_OR', 'LOGIC_NOT',
@@ -63,11 +62,11 @@ class CLexer:
         # Bit Shift operators
         'BIT_LEFT', 'BIT_RIGHT',
 
-        # Bitwise Logical Operators
-        'BIT_LOGIC_OR', 'BIT_LOGIC_NOT', 'BIT_LOGIC_XOR',
+        # # Bitwise Logical Operators
+        # 'BIT_LOGIC_OR', 'BIT_LOGIC_NOT', 'BIT_LOGIC_XOR',
 
         # Assignment Operators
-        'ASSIGN', 'ADD_ASSIGN', 'SUB_ASSIGN', 'MUL_ASSIGN', 'DIV_ASSIGN', 'MOD_ASSIGN', 'BIL_ASSIGN', 'BIR_ASSIGN', 'AND_ASSIGN', 'OR_ASSIGN', 'XOR_ASSIGN',
+        'ADD_ASSIGN', 'SUB_ASSIGN', 'MUL_ASSIGN', 'DIV_ASSIGN', 'MOD_ASSIGN', 'BIL_ASSIGN', 'BIR_ASSIGN', 'AND_ASSIGN', 'OR_ASSIGN', 'XOR_ASSIGN',
 
         # Unary_Operators
         'ADDU', 'SUBU',
@@ -152,6 +151,11 @@ class CLexer:
         r'0b[01]+'
         #t.value = int(t.value, 2)
         return t
+    
+    # def t_CONST_BOOL(self, t):
+    #     r'true|false'
+    #     #t.value = int(t.value, 2)
+    #     return t
 
     def t_CONST_INT(self, t):
         r'\d+'
