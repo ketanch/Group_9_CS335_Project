@@ -1,7 +1,7 @@
 import ply.yacc as yacc
 from lexer import *
 import sys
-
+import pydot
 
 class CParser:
 
@@ -444,7 +444,33 @@ class CParser:
     def parse_inp(self, input):
         result = self.parser.parse(input)
         print(result)
+        self.generate_dot()
 
+    def generate_dot(self):
+        dot_data = 'digraph DFA {\n'
+        goto_t = self.parser.goto
+        action_t = self.parser.action
+        max_state = max(max(goto_t.keys()), max(action_t.keys()))
+        for i in range(max_state):
+            dot_data += f'\t{i} [label="I{i}"];\n'
+        
+        for state1, edges in goto_t.items():
+            for label, state2 in edges.items():
+                dot_data += f'\tI{state1} -> I{state2} [label="{label}" color=red];\n'
+
+        for state1, edges in action_t.items():
+            for label, state2 in edges.items():
+                if state2 >= 0:
+                    dot_data += f'\tI{state1} -> I{state2} [label="{label}" color=green];\n'
+
+        dot_data += '}\n'
+        print(dot_data)
+        open('tmp/try2.dot', 'w').write(dot_data)
+        #graphs = pydot.graph_from_dot_data(dot_data)
+        #graph = graphs[0]
+        #graphs.write_png('graph.png')
+        #print("DONE")
+        
 
 # Build the parser
 parser = CParser()
