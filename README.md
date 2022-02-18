@@ -17,7 +17,7 @@ python3 src/parser.py <test file path>
 ```
 The above command will tell whether the input file is accepted by grammar or not and generates a .dot file in *src* directory. Now to generate Parser Automata, use the following command:
 ```
-sfdp -x -Goverlap=scale -Tpng tmp/try2.dot > tmp/graph_out.png
+sfdp -x -Goverlap=scale -Tpng src/graph_file.dot > src/graph_out.png
 ```
 -------------------------------------------------------------------------------
 To run the lexer, cd into the compiler directory and use the following command:
