@@ -443,7 +443,7 @@ class CParser:
 
     def parse_inp(self, input):
         result = self.parser.parse(input)
-        print(result)
+        print("Parsing completed successfully")
         self.generate_dot()
 
     def generate_dot(self):
@@ -465,7 +465,7 @@ class CParser:
 
         dot_data += '}\n'
         # print(dot_data)
-        open('tmp/try2.dot', 'w').write(dot_data)
+        open('src/graph_file.dot', 'w').write(dot_data)
         #graphs = pydot.graph_from_dot_data(dot_data)
         #graph = graphs[0]
         #graphs.write_png('graph.png')
