@@ -42,7 +42,7 @@ class CLexer:
         'struct': 'STRUCT', 'union': 'UNION',
 
         # Math functions
-        'sqrt': 'SQRT', 'exp': 'EXP', 'floor': 'FLOOR', 'ceil': 'CEIL', 'abs': 'ABS', 'log': 'LOG', 'pow': 'POW', 'sizeof': 'SIZEOF',
+        'exp': 'EXP', 'floor': 'FLOOR', 'ceil': 'CEIL', 'abs': 'ABS', 'pow': 'POW', 'sizeof': 'SIZEOF',
 
         # define for macro
         'define': 'DEFINE'
@@ -57,7 +57,8 @@ class CLexer:
         'COMP_EQUAL', 'COMP_NEQUAL', 'COMP_LTEQ', 'COMP_GTEQ',
 
         # Logical Operators
-        'LOGIC_AND', 'LOGIC_OR', 'LOGIC_NOT',
+        'LOGIC_AND', 'LOGIC_OR',
+        #'LOGIC_NOT',
 
         # Bit Shift operators
         'BIT_LEFT', 'BIT_RIGHT',
@@ -109,7 +110,7 @@ class CLexer:
 
     t_LOGIC_AND = r'&&'
     t_LOGIC_OR = r'\|\|'
-    t_LOGIC_NOT = r'!'
+    #t_LOGIC_NOT = r'!'
 
     t_BIT_LEFT = r'<<'
     t_BIT_RIGHT = r'>>'
@@ -122,7 +123,7 @@ class CLexer:
     t_DOUBLE_POINT = r'\*\*'
     t_MEMB_ACCESS = r'->'
 
-    literals = '+-*/%&,?.{}()#[];:=<>~|^'
+    literals = '+-*/%&,?.{}()#[];:=<>~|^!'
 
     def t_CONST_STRING(self, t):
         r'(\"(\\.|[^\\"])*?\")'
