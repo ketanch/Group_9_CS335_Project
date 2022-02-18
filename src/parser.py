@@ -418,9 +418,9 @@ class CParser:
     def p_external_declaration(self, p):
         '''external_declaration : function_definition
                                 | declaration
-                                | '#' DEFINE ID constant ';'
-                                | '#' DEFINE ID CONST_STRING ';'
-                                | '#' DEFINE ID '(' identifier_list ')' '(' expression ')' ';'
+                                | '#' DEFINE ID constant
+                                | '#' DEFINE ID CONST_STRING
+                                | '#' DEFINE ID '(' identifier_list ')' '(' expression ')'
         '''
     
     def p_function_definition(self, p):
@@ -464,7 +464,7 @@ class CParser:
                     dot_data += f'\t{state1} -> {state2} [label="{label}" color=green];\n'
 
         dot_data += '}\n'
-        print(dot_data)
+        # print(dot_data)
         open('tmp/try2.dot', 'w').write(dot_data)
         #graphs = pydot.graph_from_dot_data(dot_data)
         #graph = graphs[0]

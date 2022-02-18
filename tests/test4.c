@@ -17,7 +17,6 @@ int main(){
     char c='a';
     unsigned char uc='d';
     int *ptr=&i;
-    int **ptr2=&ptr;
     struct st{
         int a;
         float sf;
@@ -25,7 +24,6 @@ int main(){
     union u{
         int ui;
         float uf;
-    }
-    const volatile int v=32;
+    };
     return 0;
 }
