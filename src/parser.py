@@ -456,12 +456,12 @@ class CParser:
         
         for state1, edges in goto_t.items():
             for label, state2 in edges.items():
-                dot_data += f'\tI{state1} -> I{state2} [label="{label}" color=red];\n'
+                dot_data += f'\t{state1} -> {state2} [label="{label}" color=red];\n'
 
         for state1, edges in action_t.items():
             for label, state2 in edges.items():
                 if state2 >= 0:
-                    dot_data += f'\tI{state1} -> I{state2} [label="{label}" color=green];\n'
+                    dot_data += f'\t{state1} -> {state2} [label="{label}" color=green];\n'
 
         dot_data += '}\n'
         print(dot_data)
