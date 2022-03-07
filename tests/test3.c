@@ -1,5 +1,3 @@
-// if else and loops
-#define M 4
 int main()
 {
     int k;

@@ -322,9 +322,9 @@ class CParser:
             p[0].children = p[0].children+[p[1]]
         else:
             p[0].children = p[0].children+[p[1], p[3]]
-        print(p[3].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].value)
+        # print(p[3].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].value)
 
-    def p_type_specifier(self, p):
+    def p_type_specifier_1(self, p):
         '''type_specifier   : VOID
                             | INT
                             | FLOAT
@@ -335,9 +335,14 @@ class CParser:
                             | SIGNED
                             | UNSIGNED
                             | BOOL
-                            | struct_or_union_specifier
         '''
-        p[0] = Node(name='type_specifier', type=p[1])
+        p[0] = Node(name='type_specifier', type=p[1],value=p[1])
+    
+    def p_type_specifier_2(self, p):
+        '''type_specifier   : struct_or_union_specifier
+        '''
+        p[0] = Node(name='type_specifier')
+        p[0].children=p[1]
 
     def p_struct_or_union_specifier(self, p):
         '''struct_or_union_specifier    : struct_or_union '{' struct_declaration_list '}'
@@ -356,7 +361,7 @@ class CParser:
         '''struct_or_union  : STRUCT
                             | UNION
         '''
-        p[0] = Node(name='struct_or_union', type=p[1])
+        p[0] = Node(name='struct_or_union', type=p[1],value=p[1])
 
     def p_struct_declaration_list(self, p):
         '''struct_declaration_list  : struct_declaration
@@ -780,10 +785,43 @@ class CParser:
     def build(self, **kwargs):
         self.parser = yacc.yacc(
             start='translation_unit', module=self, **kwargs)
+    
+    def dfs (self,node,dot_data_label,dot_data_translation,i):
+        print(type(node))
+        if(isinstance(node,str)):
+            dot_data_label+=f'\t{i} [label="{node}" color=red];\n'
+            parent_i=i
+            i+=1
+            # dot_data_label+=f'\t{i} [label="{node.value}"];\n'
+            # dot_data_translation+=f'\t{parent_i}->{i};\n'
+            return dot_data_label,dot_data_translation,i
+
+
+        dot_data_label+=f'\t{i} [label="{node.name}"];\n'
+        parent_i=i
+        i+=1
+        if(len(node.children)==0):
+            dot_data_label+=f'\t{i} [label="{node.value}" color=red];\n'
+            dot_data_translation+=f'\t{parent_i}->{i};\n'
+            i+=1
+        for child in node.children:
+            dot_data_translation+=f'\t{parent_i}->{i};\n'
+            dot_data_label,dot_data_translation,i=self.dfs(child,dot_data_label,dot_data_translation,i)
+            
+        return dot_data_label,dot_data_translation,i
+
+    def generate_dot_ast(self,root):
+        dot_data_label = 'digraph DFA {\n'
+        dot_data_translation=''
+        dot_data_label,dot_data_translation,i=self.dfs(root,dot_data_label,dot_data_translation,0)
+        final_dot=dot_data_label + dot_data_translation + '}\n'
+        open('src/ast_graph_file.dot', 'w').write(final_dot)
 
     def parse_inp(self, input):
         result = self.parser.parse(input)
         print("Parsing completed successfully")
+        print(result)
+        self.generate_dot_ast(result)
         self.generate_dot()
 
     def generate_dot(self):
@@ -810,6 +848,10 @@ class CParser:
         #graph = graphs[0]
         # graphs.write_png('graph.png')
         # print("DONE")
+    
+    
+        
+
 
 
 # Build the parser
