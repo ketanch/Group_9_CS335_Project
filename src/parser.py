@@ -3,6 +3,7 @@ from lexer import *
 import sys
 import pydot
 from classes import *
+from symbolTab import *
 
 
 class CParser:
