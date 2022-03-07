@@ -1,7 +1,7 @@
 #define M 4
 int main()
 {
-    int k;
+    int k=6;
     k = 2;
     k &= 4, k -= 4;
     k *= 4;
