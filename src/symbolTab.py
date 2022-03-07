@@ -7,6 +7,8 @@
 #             "type":"int",
 #             "scope":0,
 #             "line_no":1
+#                 "isMacro":1
+#                 "isConst":1
 #         }
 #         # "b":{
 #         #     .
@@ -29,6 +31,8 @@
 #                 "type":"int",
 #                 "scope":0,
 #                 "line_no":1
+#                 "isMacro":1
+#                 "isConst":1
 #             }
 #             # "b":{
 #             #     .

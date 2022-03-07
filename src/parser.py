@@ -29,7 +29,7 @@ class CParser:
         '''primary_expression   : ID
                                 | CONST_STRING  
         '''
-        p[0] = Node(name='primary_expression', value=p[1])
+        p[0] = Node(name='primary_expression', value=p[1],idName=p[1])
 
     def p_primary_expression_2(self, p):
         '''primary_expression   : constant
@@ -250,6 +250,8 @@ class CParser:
             p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
+            p[0].idName=p[1].idName
+            p[0].value=p[3].value
 
     def p_assignment_operator(self, p):
         '''assignment_operator  : '='
@@ -282,15 +284,27 @@ class CParser:
         if(len(p) == 2):
             p[0]=p[1]
 
+    # def p_declaration(self, p):
+    #     '''declaration  : declaration_specifiers ';'
+    #                     | declaration_specifiers init_declarator_list ';'
+    #     '''
+    #     p[0] = Node(name='declaration',type=p[1].type)
+    #     if(len(p) == 3):
+    #         p[0] =p[1]
+    #     else:
+    #         p[0].children = p[0].children+[p[1], p[2]]
+    #         p[0].value=p[2].value
+    #         p[0].idName=p[2].idName
     def p_declaration(self, p):
-        '''declaration  : declaration_specifiers ';'
-                        | declaration_specifiers init_declarator_list ';'
+        '''declaration  : declaration_specifiers init_declarator_list ';'
         '''
         p[0] = Node(name='declaration',type=p[1].type)
         if(len(p) == 3):
             p[0] =p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
+            p[0].value=p[2].value
+            p[0].idName=p[2].idName
 
     def p_declaration_specifiers(self, p):
         '''declaration_specifiers   : type_specifier
@@ -320,10 +334,12 @@ class CParser:
                             | declarator 
         '''
         p[0] = Node(name='init_declarator')
+        p[0].idName=p[1]
         if(len(p) == 2):
             p[0]=p[1]
         else:
-            p[0].children = p[0].children+[p[1], p[3]]
+            p[0].children = p[0].children+[p[1],p[2], p[3]]
+            p[0].value=p[3]
         # print(p[3].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].value)
 
     def p_type_specifier_1(self, p):
@@ -444,6 +460,7 @@ class CParser:
         p[0] = Node(name='direct_declarator')
         if(len(p) == 2):
             p[0].value = p[1]
+            p[0].idName=p[1]
         if(len(p) == 4):
             p[0].children = p[0].children+[p[2]]
 
@@ -757,12 +774,37 @@ class CParser:
             p[0]=p[1]
         elif(len(p) == 5):
             p[0].children = p[0].children+[p[1], p[2], p[3], p[4]]
+            p[0].idName=p[3]
+            try:
+                p[0].value=p[4].value
+            except:
+                p[0].value=p[4]
+            symbolTable["global_variables"][p[0].idName]={
+                "value":p[0].value,
+                "type":type(p[0].value),
+                "scope":0,
+                "line_no":0,
+                "isMacro":1,
+                "isConst":1
+            }
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3], p[5], p[8]]
+            p[0].idName=p[3]
 
+    
+    # See if declaration_list is required
+    # def p_function_definition(self, p):
+    #     '''function_definition  : declaration_specifiers declarator declaration_list compound_statement
+    #                             | declaration_specifiers declarator compound_statement  
+
+    #     '''
+    #     p[0] = Node(name='function_definition')
+    #     if(len(p) == 4):
+    #         p[0].children = p[0].children+[p[1], p[2], p[3]]
+    #     else:
+    #         p[0].children = p[0].children+[p[1], p[2], p[3], p[4]]
     def p_function_definition(self, p):
-        '''function_definition  : declaration_specifiers declarator declaration_list compound_statement
-                                | declaration_specifiers declarator compound_statement  
+        '''function_definition  : declaration_specifiers declarator compound_statement  
 
         '''
         p[0] = Node(name='function_definition')
@@ -826,6 +868,7 @@ class CParser:
         print(result)
         self.generate_dot_ast(result)
         self.generate_dot()
+        print(symbolTable)
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'

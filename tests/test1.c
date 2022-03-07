@@ -1,1 +1,3 @@
-int a=5*4+3;
+int func(int a, int b){
+    ;
+}
