@@ -37,7 +37,7 @@ class CParser:
         '''
         p[0] = Node(name='primary_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[2]]
         # to look again FUNC_NAME in CONST_String
@@ -67,11 +67,11 @@ class CParser:
         '''
         p[0] = Node(name='postfix_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         elif(len(p) == 5):
             p[0].children = p[0].children+[p[1], p[3]]
         elif(len(p) == 4):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         elif(len(p) == 3):
             p[0].children = p[0].children+[p[1], p[2]]
         elif(len(p) == 7):
@@ -93,7 +93,7 @@ class CParser:
         '''
         p[0] = Node(name='argument_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0].children =p[1]
         else:
             p[0].children = p[0].children+[p[1], p[3]]
 
@@ -107,7 +107,7 @@ class CParser:
         '''
         p[0] = Node(name='unary_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         elif((len(p) == 3)):
             p[0].children = p[0].children+[p[1], p[2]]
         else:
@@ -131,7 +131,7 @@ class CParser:
         '''
         p[0] = Node(name='multipicative_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0] = p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -142,7 +142,7 @@ class CParser:
         '''
         p[0] = Node(name='additive_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -153,7 +153,7 @@ class CParser:
         '''
         p[0] = Node(name='shift_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -166,7 +166,7 @@ class CParser:
         '''
         p[0] = Node(name='relational_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -177,7 +177,7 @@ class CParser:
         '''
         p[0] = Node(name='equality_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -187,7 +187,7 @@ class CParser:
         '''
         p[0] = Node(name='and_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -197,7 +197,7 @@ class CParser:
         '''
         p[0] = Node(name='exclusive_or_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -207,7 +207,7 @@ class CParser:
         '''
         p[0] = Node(name='inclusive_or_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -217,7 +217,7 @@ class CParser:
         '''
         p[0] = Node(name='logical_and_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -227,7 +227,7 @@ class CParser:
         '''
         p[0] = Node(name='logical_or_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -237,7 +237,7 @@ class CParser:
         '''
         p[0] = Node(name='conditional_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3], p[4], p[5]]
 
@@ -247,7 +247,7 @@ class CParser:
         '''
         p[0] = Node(name='assignment_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -272,7 +272,7 @@ class CParser:
         '''
         p[0] = Node(name='expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[3]]
 
@@ -280,15 +280,15 @@ class CParser:
         '''constant_expression : conditional_expression'''
         p[0] = Node(name='constant_expression')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
 
     def p_declaration(self, p):
         '''declaration  : declaration_specifiers ';'
                         | declaration_specifiers init_declarator_list ';'
         '''
-        p[0] = Node(name='declaration')
+        p[0] = Node(name='declaration',type=p[1].type)
         if(len(p) == 3):
-            p[0].children = p[0].children+[p[1]]
+            p[0] =p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -300,7 +300,8 @@ class CParser:
         '''
         p[0] = Node(name='declaration_specifiers')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            # p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -310,7 +311,7 @@ class CParser:
         '''
         p[0] = Node(name='init_declarator_list')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[3]]
 
@@ -320,7 +321,7 @@ class CParser:
         '''
         p[0] = Node(name='init_declarator')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[3]]
         # print(p[3].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].value)
@@ -343,7 +344,7 @@ class CParser:
         '''type_specifier   : struct_or_union_specifier
         '''
         p[0] = Node(name='type_specifier')
-        p[0].children=p[1]
+        p[0]=p[1]
 
     def p_struct_or_union_specifier(self, p):
         '''struct_or_union_specifier    : struct_or_union '{' struct_declaration_list '}'
@@ -370,7 +371,7 @@ class CParser:
         '''
         p[0] = Node(name='struct_declaration_list')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -380,7 +381,7 @@ class CParser:
         '''
         p[0] = Node(name='struct_declaration')
         if(len(p) == 3):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -392,7 +393,7 @@ class CParser:
         '''
         p[0] = Node(name='specifier_qualifier_list')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -402,7 +403,7 @@ class CParser:
         '''
         p[0] = Node(name='struct_declarator_list')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[3]]
 
@@ -413,7 +414,7 @@ class CParser:
         '''
         p[0] = Node(name='struct_declaration')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         elif(len(p) == 3):
             p[0].children = p[0].children+[p[2]]
         else:
@@ -431,7 +432,7 @@ class CParser:
         '''
         p[0] = Node(name='declarator')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -471,7 +472,7 @@ class CParser:
         '''
         p[0] = Node(name='direct_declarator')
         if(len(p) == 4):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         elif(len(p) == 6):
             p[0].children = p[0].children+[p[1], p[2], p[4]]
         else:
@@ -495,7 +496,7 @@ class CParser:
         '''
         p[0] = Node(name='type_qualifier')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         elif(len(p) == 3):
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -505,7 +506,7 @@ class CParser:
         '''
         p[0] = Node(name='parameter_type_list')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
     #  parameter_list ',' ELLIPSIS
 
     def p_parameter_list(self, p):
@@ -514,7 +515,7 @@ class CParser:
         '''
         p[0] = Node(name='parameter_list')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         elif(len(p) == 4):
             p[0].children = p[0].children+[p[1], p[3]]
 
@@ -525,7 +526,7 @@ class CParser:
         '''
         p[0] = Node(name='parameter_declaration')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         elif(len(p) == 3):
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -545,7 +546,7 @@ class CParser:
         '''
         p[0] = Node(name='type_name')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         elif(len(p) == 3):
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -556,7 +557,7 @@ class CParser:
         '''
         p[0] = Node(name='abstract_declarator')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         elif(len(p) == 3):
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -610,7 +611,7 @@ class CParser:
         '''
         p[0] = Node(name='parameter_list')
         if(len(p) == 4):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
 
     def p_initializer(self, p):
         '''initializer  : '{' initializer_list '}'
@@ -619,9 +620,9 @@ class CParser:
         '''
         p[0] = Node(name='initializer')
         if(len(p) == 4):
-            p[0].children = p[0].children+[p[2]]
+            p[0]=p[2]
         else:
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
 
     def p_initializer_list(self, p):
         '''initializer_list : initializer
@@ -631,7 +632,7 @@ class CParser:
         if(len(p) == 4):
             p[0].children = p[0].children+[p[1], p[3]]
         else:
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
     # we are not implementing designation list
 
     def p_statement(self, p):
@@ -643,7 +644,7 @@ class CParser:
                         | jump_statement
         '''
         p[0] = Node(name='statement')
-        p[0].children = p[0].children+[p[1]]
+        p[0]=p[1]
 
     def p_labeled_statement(self, p):
         '''labeled_statement    : ID ':' statement 
@@ -671,14 +672,14 @@ class CParser:
         if(len(p) == 3):
             p[0].children = p[0].children+[p[1], p[2]]
         else:
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
 
     def p_block_item(self, p):
         '''block_item   :  declaration
                         |  statement
         '''
         p[0] = Node(name='block_item')
-        p[0].children = p[0].children+[p[1]]
+        p[0]=p[1]
 
     def p_expression_statement(self, p):
         '''expression_statement : ';'
@@ -686,7 +687,7 @@ class CParser:
         '''
         p[0] = Node(name='expression_statement')
         if(len(p) == 3):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
 
     def p_selection_statement(self, p):
         '''selection_statement  : IF '(' expression ')' statement ELSE statement
@@ -740,7 +741,7 @@ class CParser:
         '''
         p[0] = Node(name='translation_unit')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -753,7 +754,7 @@ class CParser:
         '''
         p[0] = Node(name='external_declaration')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0]=p[1]
         elif(len(p) == 5):
             p[0].children = p[0].children+[p[1], p[2], p[3], p[4]]
         else:
@@ -776,7 +777,7 @@ class CParser:
         '''
         p[0] = Node(name='declaration_list')
         if(len(p) == 2):
-            p[0].children = p[0].children+[p[1]]
+            p[0] =p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -801,6 +802,7 @@ class CParser:
         dot_data_label+=f'\t{i} [label="{node.name}"];\n'
         parent_i=i
         i+=1
+        print(node.name)
         if(len(node.children)==0):
             dot_data_label+=f'\t{i} [label="{node.value}" color=red];\n'
             dot_data_translation+=f'\t{parent_i}->{i};\n'
