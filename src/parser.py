@@ -305,6 +305,20 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[2]]
             p[0].value=p[2].value
             p[0].idName=p[2].idName
+        global global_node
+        
+        if(len(global_stack)==0):
+            if p[0].idName in global_node["global_variables"].keys():
+                print("Variable redefined")
+                exit(-1)
+            global_node["global_variables"][p[0].idName]={}
+            global_node["global_variables"][p[0].idName]["value"]=p[0].value
+        else:
+            if p[0].idName in global_node["variables"].keys():
+                print("Variable redefined")
+                exit(-1)
+            global_node["variables"][p[0].idName]={}
+            global_node["variables"][p[0].idName]["value"]=p[0].value
 
     def p_declaration_specifiers(self, p):
         '''declaration_specifiers   : type_specifier
@@ -339,7 +353,8 @@ class CParser:
             p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1],p[2], p[3]]
-            p[0].value=p[3]
+            p[0].value=p[3].value
+            p[0].idName=p[1].idName
         # print(p[3].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].value)
 
     def p_type_specifier_1(self, p):
@@ -715,19 +730,22 @@ class CParser:
         p[0] = Node(name='selection_statement')
         if(len(p) == 6):
             p[0].children = p[0].children+[p[1], p[3], p[5]]
+        elif(len(p)==8):
+            p[0].children = p[0].children+[p[1], p[3], p[6]]
         else:
-            p[0].children = p[0].children+[p[1], p[3], p[5], p[6], p[7]]
+            p[0].children = p[0].children+[p[1], p[3], p[6],p[8],p[10]]
     def p_MARKER1(self,p):
         ''' MARKER1 : '''
-        
+        global global_node
         tmp="if"+str(len(global_stack))
-        global_node[tmp]={}
+        global_node[tmp]={"variables":{}}
         global_stack.append(global_node)
         global_node=global_node["if"+str(len(global_stack)-1)]
     def p_MARKER2(self,p):
         ''' MARKER2 : '''
+        global global_node
         # global_node["if"+str(len(global_stack))]={}
-        global_node=global_stack.pop
+        global_node=global_stack.pop()
         # global_node=global_node["if"+str(len(global_stack)-1)]
     def p_iteration_statement_1(self, p):
         '''iteration_statement  : WHILE '(' expression ')' statement
@@ -816,43 +834,49 @@ class CParser:
     #         p[0].children = p[0].children+[p[1], p[2], p[3]]
     #     else:
     #         p[0].children = p[0].children+[p[1], p[2], p[3], p[4]]
-    def p_function_definition(self, p):
-        '''function_definition  : declaration_specifiers declarator compound_statement MARKER2  
-
-        '''
-        p[0] = Node(name='function_definition',type=p[1].type,idName=p[2].idName)
+    def p_function_definition_init(self,p):
+        '''function_definition_init : declaration_specifiers declarator'''
+        global global_node
+        p[0] = Node(name='function_definition_init',type=p[1].type,idName=p[2].idName)
         
         # If there are arguments
         try:
             root=p[2].children[1]
             numberArgs=len(root.children)
-            symbolTable[p[0].idName]={
+            global_node[p[0].idName]={
                 "func_parameters":{
                     "number_args":numberArgs,
                     "arguments":{},
                     "return_type":p[0].type,
                     "scope":0
-                }
+                },
+                "variables":{}
             }
             for child in root.children:
                 symbolTable[p[0].idName]["func_parameters"]["arguments"][child.idName]=child.type
         except:
-            symbolTable[p[0].idName]={
+            print(global_node)
+            global_node[p[0].idName]={
                 "func_parameters":{
                     "number_args":0,
                     "arguments":{},
                     "return_type":p[0].type,
                     "scope":0
-                }
+                },
+                "variables":{}
             }
-        global_node=symbolTable[p[0].idName]
-        global_stack.append(symbolTable)
         
-        
-        if(len(p) == 4):
-            p[0].children = p[0].children+[p[1], p[2], p[3]]
-        else:
-            p[0].children = p[0].children+[p[1], p[2], p[3], p[4]]
+        p[0].children = p[0].children+[p[1], p[2]]
+        global_stack.append(global_node)
+        global_node=global_node[p[0].idName]
+
+    def p_function_definition(self, p):
+        '''function_definition  : function_definition_init ';' MARKER2 
+                                | function_definition_init compound_statement MARKER2  
+
+        '''
+        p[0] = Node(name='function_definition',type=p[1].type,idName=p[1].idName)
+        p[0].children+=[p[1],p[2]]
 
     def p_declaration_list(self, p):
         '''declaration_list : declaration
@@ -880,7 +904,8 @@ class CParser:
             # dot_data_translation+=f'\t{parent_i}->{i};\n'
             return dot_data_label,dot_data_translation,i
 
-
+        if(node==None):
+            return dot_data_label,dot_data_translation,i
         dot_data_label+=f'\t{i} [label="{node.name}"];\n'
         parent_i=i
         i+=1
@@ -900,6 +925,7 @@ class CParser:
         dot_data_label,dot_data_translation,i=self.dfs(root,dot_data_label,dot_data_translation,0)
         final_dot=dot_data_label + dot_data_translation + '}\n'
         open('src/ast_graph_file.dot', 'w').write(final_dot)
+        # print(symbolTable)
 
     def parse_inp(self, input):
         result = self.parser.parse(input)
@@ -907,7 +933,7 @@ class CParser:
         # print(result)
         self.generate_dot_ast(result)
         self.generate_dot()
-        # print(json.dumps(symbolTable,indent=2))
+        print(json.dumps(symbolTable,indent=2))
         # print(symbolTable)
 
     def generate_dot(self):
