@@ -18,9 +18,9 @@
 #     "func_name":{
 #         "func_paramenters":{
 #             "number_args":2,
-#             "argument_types":{
-#                 "1":'int',
-#                 "2":'char'
+#             "arguments":{
+#                 "a":'int',
+#                 "b":'char'
 #             },
 #             "return_type":'int',
 #             "scope":3
@@ -47,7 +47,7 @@ symbolTable={
         "printf":{
             "func_paramenters":{
                 "number_args":100,
-                "argument_types":{
+                "arguments":{
                     0:'char*',
                     1:'int'
                 },
@@ -59,7 +59,7 @@ symbolTable={
         "scanf":{
             "func_paramenters":{
                 "number_args":100,
-                "argument_types":{
+                "arguments":{
                     0:'char*',
                     1:'int'
                 },
@@ -71,7 +71,7 @@ symbolTable={
         "fprintf":{
             "func_paramenters":{
                 "number_args":100,
-                "argument_types":{
+                "arguments":{
                     0:'file_pointer',
                     1:'char*',
                     2:'int'
@@ -84,7 +84,7 @@ symbolTable={
         "fscanf":{
             "func_paramenters":{
                 "number_args":100,
-                "argument_types":{
+                "arguments":{
                     0:'file_pointer',
                     1:'char*',
                     2:'int'
@@ -97,7 +97,7 @@ symbolTable={
         "fopen":{
             "func_paramenters":{
                 "number_args":2,
-                "argument_types":{
+                "arguments":{
                     0:'char*',
                     1:'char*',
                 },
@@ -109,7 +109,7 @@ symbolTable={
         "fclose":{
             "func_paramenters":{
                 "number_args":2,
-                "argument_types":{
+                "arguments":{
                     0:'char*',
                     1:'char*',
                 },
@@ -121,7 +121,7 @@ symbolTable={
         "exp":{
             "func_paramenters":{
                 "number_args":1,
-                "argument_types":{
+                "arguments":{
                     0:'int',
                 },
                 "return_type":'float',
@@ -132,7 +132,7 @@ symbolTable={
         "floor":{
             "func_paramenters":{
                 "number_args":1,
-                "argument_types":{
+                "arguments":{
                     0:'float',
                 },
                 "return_type":'int',
@@ -143,7 +143,7 @@ symbolTable={
         "ceil":{
             "func_paramenters":{
                 "number_args":1,
-                "argument_types":{
+                "arguments":{
                     0:'float',
                 },
                 "return_type":'int',
@@ -154,7 +154,7 @@ symbolTable={
         "abs":{
             "func_paramenters":{
                 "number_args":1,
-                "argument_types":{
+                "arguments":{
                     0:'int',
                 },
                 "return_type":'int',
@@ -165,7 +165,7 @@ symbolTable={
         "pow":{
             "func_paramenters":{
                 "number_args":2,
-                "argument_types":{
+                "arguments":{
                     0:'float',
                     1:'int'
                 },
@@ -177,7 +177,7 @@ symbolTable={
         "sizeof":{
             "func_paramenters":{
                 "number_args":1,
-                "argument_types":{
+                "arguments":{
                     0:'char*',
                 },
                 "return_type":'int',
@@ -188,3 +188,6 @@ symbolTable={
     },
     "global_variables":{}
 }
+
+global_stack=[]
+global_node=symbolTable

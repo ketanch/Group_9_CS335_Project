@@ -1,4 +1,7 @@
-#define M 4
+#define M 4.677
+void func(int a, int b){
+    ;
+}
 int main()
 {
     int k=6;

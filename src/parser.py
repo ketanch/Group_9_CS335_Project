@@ -3,8 +3,8 @@ from lexer import *
 import sys
 import pydot
 from classes import *
-from symbolTab import *
-
+from symbolTab import symbolTable,global_stack,global_node
+import json
 
 class CParser:
 
@@ -312,7 +312,7 @@ class CParser:
                                     | type_qualifier
                                     | type_qualifier declaration_specifiers
         '''
-        p[0] = Node(name='declaration_specifiers')
+        p[0] = Node(name='declaration_specifiers',type=p[1].type)
         if(len(p) == 2):
             # p[0].children = p[0].children+[p[1]]
             p[0]=p[1]
@@ -367,7 +367,7 @@ class CParser:
                                         | struct_or_union ID '{' struct_declaration_list '}'
                                         | struct_or_union ID
         '''
-        p[0] = Node(name='struct_or_union_specifier')
+        p[0] = Node(name='struct_or_union_specifier',type=p[1])
         if(len(p) == 5):
             p[0].children = p[0].children+[p[1], p[3]]
         elif(len(p) == 6):
@@ -487,7 +487,7 @@ class CParser:
                                 | direct_declarator '(' ')'
                                 | direct_declarator '(' identifier_list ')'
         '''
-        p[0] = Node(name='direct_declarator')
+        p[0] = Node(name='direct_declarator',idName=p[1].idName)
         if(len(p) == 4):
             p[0]=p[1]
         elif(len(p) == 6):
@@ -541,11 +541,12 @@ class CParser:
                                     | declaration_specifiers abstract_declarator
                                     | declaration_specifiers
         '''
-        p[0] = Node(name='parameter_declaration')
+        p[0] = Node(name='parameter_declaration',type=p[1].type)
         if(len(p) == 2):
             p[0]=p[1]
         elif(len(p) == 3):
             p[0].children = p[0].children+[p[1], p[2]]
+            p[0].idName=p[2].idName
 
     def p_identifier_list(self, p):
         '''identifier_list  : ID
@@ -707,16 +708,27 @@ class CParser:
             p[0]=p[1]
 
     def p_selection_statement(self, p):
-        '''selection_statement  : IF '(' expression ')' statement ELSE statement
-                                | IF '(' expression ')' statement
-                                | SWITCH '(' expression ')' statement
+        '''selection_statement  : IF '(' expression ')' MARKER1 statement MARKER2 ELSE MARKER1 statement MARKER2
+                                | IF '(' expression ')' MARKER1 statement MARKER2
+                                | SWITCH '(' expression ')'  statement 
         '''
         p[0] = Node(name='selection_statement')
         if(len(p) == 6):
             p[0].children = p[0].children+[p[1], p[3], p[5]]
         else:
             p[0].children = p[0].children+[p[1], p[3], p[5], p[6], p[7]]
-
+    def p_MARKER1(self,p):
+        ''' MARKER1 : '''
+        
+        tmp="if"+str(len(global_stack))
+        global_node[tmp]={}
+        global_stack.append(global_node)
+        global_node=global_node["if"+str(len(global_stack)-1)]
+    def p_MARKER2(self,p):
+        ''' MARKER2 : '''
+        # global_node["if"+str(len(global_stack))]={}
+        global_node=global_stack.pop
+        # global_node=global_node["if"+str(len(global_stack)-1)]
     def p_iteration_statement_1(self, p):
         '''iteration_statement  : WHILE '(' expression ')' statement
                                 | DO statement WHILE '(' expression ')' ';'
@@ -779,9 +791,10 @@ class CParser:
                 p[0].value=p[4].value
             except:
                 p[0].value=p[4]
+            # print(type(p[0].value))
             symbolTable["global_variables"][p[0].idName]={
                 "value":p[0].value,
-                "type":type(p[0].value),
+                "type":'int',
                 "scope":0,
                 "line_no":0,
                 "isMacro":1,
@@ -804,10 +817,38 @@ class CParser:
     #     else:
     #         p[0].children = p[0].children+[p[1], p[2], p[3], p[4]]
     def p_function_definition(self, p):
-        '''function_definition  : declaration_specifiers declarator compound_statement  
+        '''function_definition  : declaration_specifiers declarator compound_statement MARKER2  
 
         '''
-        p[0] = Node(name='function_definition')
+        p[0] = Node(name='function_definition',type=p[1].type,idName=p[2].idName)
+        
+        # If there are arguments
+        try:
+            root=p[2].children[1]
+            numberArgs=len(root.children)
+            symbolTable[p[0].idName]={
+                "func_parameters":{
+                    "number_args":numberArgs,
+                    "arguments":{},
+                    "return_type":p[0].type,
+                    "scope":0
+                }
+            }
+            for child in root.children:
+                symbolTable[p[0].idName]["func_parameters"]["arguments"][child.idName]=child.type
+        except:
+            symbolTable[p[0].idName]={
+                "func_parameters":{
+                    "number_args":0,
+                    "arguments":{},
+                    "return_type":p[0].type,
+                    "scope":0
+                }
+            }
+        global_node=symbolTable[p[0].idName]
+        global_stack.append(symbolTable)
+        
+        
         if(len(p) == 4):
             p[0].children = p[0].children+[p[1], p[2], p[3]]
         else:
@@ -831,7 +872,6 @@ class CParser:
             start='translation_unit', module=self, **kwargs)
     
     def dfs (self,node,dot_data_label,dot_data_translation,i):
-        print(type(node))
         if(isinstance(node,str)):
             dot_data_label+=f'\t{i} [label="{node}" color=red];\n'
             parent_i=i
@@ -844,7 +884,6 @@ class CParser:
         dot_data_label+=f'\t{i} [label="{node.name}"];\n'
         parent_i=i
         i+=1
-        print(node.name)
         if(len(node.children)==0):
             dot_data_label+=f'\t{i} [label="{node.value}" color=red];\n'
             dot_data_translation+=f'\t{parent_i}->{i};\n'
@@ -865,10 +904,11 @@ class CParser:
     def parse_inp(self, input):
         result = self.parser.parse(input)
         print("Parsing completed successfully")
-        print(result)
+        # print(result)
         self.generate_dot_ast(result)
         self.generate_dot()
-        print(symbolTable)
+        # print(json.dumps(symbolTable,indent=2))
+        # print(symbolTable)
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'
