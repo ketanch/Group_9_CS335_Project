@@ -1,3 +1,4 @@
+from lib2to3.pgen2 import token
 import ply.lex as lex
 import sys
 
@@ -186,6 +187,10 @@ class CLexer:
         print("Illegal character '%s'" % t.value[0])
         t.lexer.skip(1)
 
+    def find_column(self, input, token):
+        line_start = input.rfind('\n', 0, token.lexpos) + 1
+        return (token.lexpos - line_start) + 1
+
     def build(self, **kwargs):
         self.lexer = lex.lex(module=self, **kwargs)
 
@@ -197,6 +202,7 @@ class CLexer:
             tok = self.lexer.token()
             if not tok:
                 break
+            tok.lexpos = self.find_column(data, tok)
             print(tok.type.ljust(15, ' '), str(tok.value).ljust(15, ' '), str(
                 tok.lineno).ljust(15, ' '), str(tok.lexpos).ljust(15, ' '))
 

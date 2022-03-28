@@ -1,16 +1,10 @@
-#define M 4
-int main()
-{
-    int k;
-    k = 2;
-    k &= 4, k -= 4;
-    k *= 4;
-    k /= 4;
-    k %= 4;
-    k <<= 4;
-    k >>= 4;
-    k &= 4;
-    k |= 4;
-    k ^= 4;
-    return 0;
+int v=32;
+int main(){
+    int a=3;
+}
+int func(){
+    int a=3;
+}
+int func2(){
+    int a=8;
 }
