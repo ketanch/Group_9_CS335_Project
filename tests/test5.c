@@ -1,20 +1,8 @@
 // I/O checks
 int main(){
     int x=0;
-    x++;
-    float f=34.56;
-    switch(x){    
-        case 0:    
-        f=0;  
-        break;    
-        case 1:    
-        f=10000;
-        break;    
-        case -1:    
-        f=-10000;
-        break;    
-        default:    
-        f=0;
-    }    
+    int a = 5;
+    a = 6;
+    int x = 6;
     return 0;
 }
