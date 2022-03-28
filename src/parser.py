@@ -1,3 +1,4 @@
+from ctypes.wintypes import INT
 import ply.yacc as yacc
 from lexer import *
 import sys
@@ -30,6 +31,8 @@ class CParser:
                                 | CONST_STRING  
         '''
         p[0] = Node(name='primary_expression', value=p[1],idName=p[1])
+        if (p[0].idName not in global_node["variables"] and p[0].idName not in symbolTable.keys()):
+            print("Identifier %s not defined at line = %d" % (p[0].idName, p.lineno(0)))
 
     def p_primary_expression_2(self, p):
         '''primary_expression   : constant
@@ -38,22 +41,50 @@ class CParser:
         p[0] = Node(name='primary_expression')
         if(len(p) == 2):
             p[0]=p[1]
+            p[0].type = p[1].type
         else:
             p[0].children = p[0].children+[p[2]]
         # to look again FUNC_NAME in CONST_String
 
-    def p_constant(self, p):
-        '''constant : CONST_INT
-                    | CONST_CHAR
-                    | CONST_FLOAT
-                    | CONST_HEX
-                    | CONST_OCT
-                    | CONST_BIN    
-                    | TRUE
-                    | FALSE  
+    def p_constant_1(self, p):
+        '''constant : CONST_INT 
         '''
-        p[0] = Node(name='constant', value=p[1])
-        # p[0] = p[1]
+        p[0] = Node(name='constant', value = p[1], type = 'INT')
+
+    def p_constant_2(self, p):
+        '''constant : CONST_CHAR
+        '''
+        p[0] = Node(name='constant', value = p[1], type = 'CHAR')
+    
+    def p_constant_3(self, p):
+        '''constant : CONST_FLOAT
+        '''
+        p[0] = Node(name='constant', value = p[1], type = 'FLOAT')
+
+    def p_constant_4(self, p):
+        '''constant : CONST_HEX
+        '''
+        p[0] = Node(name='constant', value = p[1], type = 'CONST_HEX')
+    
+    def p_constant_5(self, p):
+        '''constant : CONST_OCT 
+        '''
+        p[0] = Node(name='constant', value = p[1], type = 'CONST_OCT')
+
+    def p_constant_6(self, p):
+        '''constant : CONST_BIN
+        '''
+        p[0] = Node(name='constant', value = p[1], type = 'CONST_BIN')
+    
+    def p_constant_7(self, p):
+        '''constant : TRUE
+        '''
+        p[0] = Node(name='constant', value = p[1], type = 'TRUE')
+    
+    def p_constant_8(self, p):
+        '''constant : FALSE  
+        '''
+        p[0] = Node(name='constant', value = p[1], type = 'FALSE')
 
     def p_postfix_expression_1(self, p):
         '''postfix_expression   : primary_expression
@@ -68,6 +99,7 @@ class CParser:
         p[0] = Node(name='postfix_expression')
         if(len(p) == 2):
             p[0]=p[1]
+            p[0].type = p[1].type
         elif(len(p) == 5):
             p[0].children = p[0].children+[p[1], p[3]]
         elif(len(p) == 4):
@@ -108,6 +140,8 @@ class CParser:
         p[0] = Node(name='unary_expression')
         if(len(p) == 2):
             p[0]=p[1]
+            p[0].type = p[1].type
+            #print("In unary", p[0].type)
         elif((len(p) == 3)):
             p[0].children = p[0].children+[p[1], p[2]]
         else:
@@ -132,6 +166,8 @@ class CParser:
         p[0] = Node(name='multipicative_expression')
         if(len(p) == 2):
             p[0] = p[1]
+            p[0].type = p[1].type
+            #print("GG", p[1].type)
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -142,9 +178,15 @@ class CParser:
         '''
         p[0] = Node(name='additive_expression')
         if(len(p) == 2):
+            p[0].type = p[1].type
             p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
+            if p[1].type != p[3].type:
+                pass
+                #print("Implicit type casting not allowed between %s and %s at line %d" % (p[1].type, p[3].type, p.lineno(0)))
+            p[0].type = p[1].type
+            #print(p[1].type, "dfdf",p[3].type)
 
     def p_shift_expression(self, p):
         '''shift_expression : additive_expression
@@ -306,16 +348,21 @@ class CParser:
             p[0].value=p[2].value
             p[0].idName=p[2].idName
         global global_node
+        #print(p[0].type, p[2].type)
+        if p[0].type.lower() != p[2].type.lower():
+            print("Type casting from %s to %s not allowed at line = %d" % (p[2].type.lower(), p[0].type.lower(), p.lineno(0)))
         
         if(len(global_stack)==0):
             if p[0].idName in global_node["global_variables"].keys():
-                print("Variable redefined")
+                print("Variable redefined at line = %d" % (p.lineno(1)))
+                raise SyntaxError
                 exit(-1)
             global_node["global_variables"][p[0].idName]={}
             global_node["global_variables"][p[0].idName]["value"]=p[0].value
         else:
             if p[0].idName in global_node["variables"].keys():
-                print("Variable redefined")
+                print("Variable redefined at line = %d" % (p.lineno(1)))
+                raise SyntaxError
                 exit(-1)
             global_node["variables"][p[0].idName]={}
             global_node["variables"][p[0].idName]["value"]=p[0].value
@@ -355,6 +402,7 @@ class CParser:
             p[0].children = p[0].children+[p[1],p[2], p[3]]
             p[0].value=p[3].value
             p[0].idName=p[1].idName
+            p[0].type = p[3].type
         # print(p[3].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].value)
 
     def p_type_specifier_1(self, p):
@@ -734,6 +782,7 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[3], p[6]]
         else:
             p[0].children = p[0].children+[p[1], p[3], p[6],p[8],p[10]]
+
     def p_MARKER1(self,p):
         ''' MARKER1 : '''
         global global_node
@@ -741,6 +790,7 @@ class CParser:
         global_node[tmp]={"variables":{}}
         global_stack.append(global_node)
         global_node=global_node["if"+str(len(global_stack)-1)]
+
     def p_MARKER2(self,p):
         ''' MARKER2 : '''
         global global_node
@@ -769,18 +819,31 @@ class CParser:
         if(len(p) == 8):
             p[0].children = p[0].children+[p[1], p[3], p[4], p[5], p[7]]
 
-    def p_jump_statement(self, p):
+    def p_jump_statement_1(self, p):
         '''jump_statement   : GOTO ID ';'
                             | CONTINUE ';'
                             | BREAK ';'
-                            | RETURN ';'
                             | RETURN expression ';'
         '''
         p[0] = Node(name='jump_statement')
         if(len(p) == 3):
             p[0].value = p[1]
-        else:
+        elif len(p) == 4:
             p[0].children = p[0].children+[p[1], p[2]]
+            ret_type = global_node["func_parameters"]["return_type"].lower()
+            if p[2].type.lower() != ret_type:
+                print("Return type mismatch at line %d. Function return type is %s whereas returning %s" % (p.lineno(0), ret_type, p[2].type.lower()))
+        #else:
+        #    p[0].children = p[0].children+[p[1], p[2]]
+
+    def p_jump_statement_2(self, p):
+        '''jump_statement   : RETURN ';'
+        '''
+        p[0] = Node(name='jump_statement')
+        p[0].value = p[1]
+        ret_type = global_node["func_parameters"]["return_type"].lower()
+        if 'void' != ret_type:
+            print("Return type mismatch at line %d. Function return type is %s whereas returning void" % (p.lineno(0), ret_type))
 
     def p_translation_unit(self, p):
         '''translation_unit : external_declaration
@@ -855,7 +918,7 @@ class CParser:
             for child in root.children:
                 symbolTable[p[0].idName]["func_parameters"]["arguments"][child.idName]=child.type
         except:
-            print(global_node)
+            #print(global_node)
             global_node[p[0].idName]={
                 "func_parameters":{
                     "number_args":0,
@@ -877,6 +940,7 @@ class CParser:
         '''
         p[0] = Node(name='function_definition',type=p[1].type,idName=p[1].idName)
         p[0].children+=[p[1],p[2]]
+        #print(symbolTable["func"])
 
     def p_declaration_list(self, p):
         '''declaration_list : declaration
@@ -888,7 +952,15 @@ class CParser:
         else:
             p[0].children = p[0].children+[p[1], p[2]]
 
+    #def find_column(self, input, token):
+    #    line_start = input.rfind('\n', 0, token.lexpos) + 1
+    #    return (token.lexpos - line_start) + 1
+    
     def p_error(self, p):
+        if (p == None):
+            print("EOF tokens.")
+        #print(p, type(p))
+        #print(p.lineno, self.find_column(p.lexpos))
         print("Syntax error in input!")
 
     def build(self, **kwargs):
@@ -928,12 +1000,15 @@ class CParser:
         # print(symbolTable)
 
     def parse_inp(self, input):
-        result = self.parser.parse(input)
+        result = self.parser.parse(input, tracking = True)
+        if "main" not in symbolTable.keys():
+            print("'main' function not present.")
+            exit(1)
         print("Parsing completed successfully")
         # print(result)
         self.generate_dot_ast(result)
         self.generate_dot()
-        print(json.dumps(symbolTable,indent=2))
+        #print(json.dumps(symbolTable,indent=2))
         # print(symbolTable)
 
     def generate_dot(self):
@@ -955,16 +1030,12 @@ class CParser:
 
         dot_data += '}\n'
         # print(dot_data)
-        open('src/graph_file.dot', 'w').write(dot_data)
+        #open('src/graph_file.dot', 'w').write(dot_data)
         #graphs = pydot.graph_from_dot_data(dot_data)
         #graph = graphs[0]
-        # graphs.write_png('graph.png')
+        #graph.write_png('graph.png')
         # print("DONE")
     
-    
-        
-
-
 
 # Build the parser
 parser = CParser()

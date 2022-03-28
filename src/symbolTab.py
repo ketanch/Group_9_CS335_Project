@@ -6,9 +6,9 @@
 #             "value":3,
 #             "type":"int",
 #             "scope":0,
-#             "line_no":1
-#                 "isMacro":1
-#                 "isConst":1
+#             "line_no":1,
+#             "isMacro":1,
+#             "isConst":1
 #         }
 #         # "b":{
 #         #     .

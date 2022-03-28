@@ -135,3 +135,5 @@ src/parser.out
 src/parsetab.py
 tmp
 .vscode
+graph*
+src/*.dot
