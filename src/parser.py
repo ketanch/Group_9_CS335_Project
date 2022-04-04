@@ -338,7 +338,8 @@ class CParser:
     #         p[0].value=p[2].value
     #         p[0].idName=p[2].idName
     def p_declaration(self, p):
-        '''declaration  : declaration_specifiers init_declarator_list ';'
+        '''declaration  : declaration_specifiers ';'
+                         | declaration_specifiers init_declarator_list ';'
         '''
         p[0] = Node(name='declaration',type=p[1].type)
         if(len(p) == 3):
@@ -349,8 +350,8 @@ class CParser:
             p[0].idName=p[2].idName
         global global_node
         #print(p[0].type, p[2].type)
-        if p[0].type.lower() != p[2].type.lower():
-            print("Type casting from %s to %s not allowed at line = %d" % (p[2].type.lower(), p[0].type.lower(), p.lineno(0)))
+        # if p[0].type.lower() != p[2].type.lower():
+        #     print("Type casting from %s to %s not allowed at line = %d" % (p[2].type.lower(), p[0].type.lower(), p.lineno(0)))
         
         if(len(global_stack)==0):
             if p[0].idName in global_node["global_variables"].keys():
@@ -369,7 +370,6 @@ class CParser:
 
     def p_declaration_specifiers(self, p):
         '''declaration_specifiers   : type_specifier
-                                    | type_specifier declaration_specifiers
                                     | type_qualifier
                                     | type_qualifier declaration_specifiers
         '''
@@ -959,8 +959,8 @@ class CParser:
     def p_error(self, p):
         if (p == None):
             print("EOF tokens.")
-        #print(p, type(p))
-        #print(p.lineno, self.find_column(p.lexpos))
+        print(p, type(p))
+        # print(p.lineno, self.find_column(p.lexpos))
         print("Syntax error in input!")
 
     def build(self, **kwargs):

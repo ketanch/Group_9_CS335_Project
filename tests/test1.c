@@ -1,4 +1,15 @@
-int func() {
-    int c = 4;
-    return 5;
-}
+ int a;
+ struct point {
+         int a;
+         int b;
+         float c;
+     };
+
+int main(){
+     struct point {
+         int a;
+         int b;
+         float c;
+     };
+ 
+    }
