@@ -1,7 +1,5 @@
 int main(){
+    for(int i=0;i<10;i++){
 
-    int c=3;
-    int x;
-    int a[78];
-    int b[3]={1,2,3};
+    }
 }

@@ -141,7 +141,6 @@ class CParser:
         if(len(p) == 2):
             p[0]=p[1]
             p[0].type = p[1].type
-            #print("In unary", p[0].type)
         elif((len(p) == 3)):
             p[0].children = p[0].children+[p[1], p[2]]
         else:
@@ -167,7 +166,6 @@ class CParser:
         if(len(p) == 2):
             p[0] = p[1]
             p[0].type = p[1].type
-            #print("GG", p[1].type)
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -400,6 +398,7 @@ class CParser:
         '''declaration_specifiers   : type_specifier
                                     | type_qualifier
                                     | type_qualifier declaration_specifiers
+                                    | type_specifier declaration_specifiers
         '''
         p[0] = Node(name='declaration_specifiers',type=p[1].type)
         if(len(p) == 2):
@@ -511,7 +510,6 @@ class CParser:
         elif(len(p) == 6):
             p[0].children = p[0].children+[p[1], p[2], p[4]]
             if(global_node==symbolTable):
-                global_node["dataTypes"][p[2]]={"1type":p[1].type}
                 global_node["dataTypes"][p[2]]={"1type":p[1].type}
                 tmp_ar=p[4].children
                 i=0
@@ -898,7 +896,7 @@ class CParser:
     def p_selection_statement(self, p):
         '''selection_statement  : IF '(' expression ')' MARKER1 statement MARKER2 ELSE MARKER1 statement MARKER2
                                 | IF '(' expression ')' MARKER1 statement MARKER2
-                                | SWITCH '(' expression ')'  statement 
+                                | SWITCH '(' expression ')' MARKER1  statement 
         '''
         p[0] = Node(name='selection_statement')
         if(len(p) == 6):
@@ -911,11 +909,19 @@ class CParser:
     def p_MARKER1(self,p):
         ''' MARKER1 : '''
         global global_node
-        tmp="if"+str(len(global_stack))
-        global_node[tmp]={"variables":{}}
-        global_node[tmp]={"dataTypes":{}}
+        tmp="scope"+str(len(global_stack))
+        global_node[tmp]={"variables":{},"dataTypes":{}}
         global_stack.append(global_node)
-        global_node=global_node["if"+str(len(global_stack)-1)]
+        global_node=global_node["scope"+str(len(global_stack)-1)]
+    
+    def p_MARKER3(self,p):
+        ''' MARKER3 : '(' '''
+        global global_node
+        tmp="scope"+str(len(global_stack))
+        global_node[tmp]={"variables":{},"dataTypes":{}}
+        global_stack.append(global_node)
+        global_node=global_node["scope"+str(len(global_stack)-1)]
+        
 
     def p_MARKER2(self,p):
         ''' MARKER2 : '''
@@ -924,11 +930,11 @@ class CParser:
         global_node=global_stack.pop()
         # global_node=global_node["if"+str(len(global_stack)-1)]
     def p_iteration_statement_1(self, p):
-        '''iteration_statement  : WHILE '(' expression ')' statement
-                                | DO statement WHILE '(' expression ')' ';'
-                                | FOR '(' expression_statement expression_statement ')' statement
-                                | FOR '(' declaration expression_statement ')' statement
-                                | FOR '(' declaration expression_statement expression ')' statement                                                
+        '''iteration_statement  : WHILE MARKER3 expression ')' statement
+                                | DO MARKER1 statement WHILE '(' expression ')' ';'
+                                | FOR MARKER3 expression_statement expression_statement ')'  statement
+                                | FOR MARKER3 declaration expression_statement ')'  statement
+                                | FOR MARKER3 declaration expression_statement expression ')' statement                                                
         '''
         p[0] = Node(name='iteration_statement')
         if(len(p) == 6):
