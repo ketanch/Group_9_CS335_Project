@@ -186,7 +186,8 @@ symbolTable={
             "variables":{}
         },
     },
-    "global_variables":{}
+    "global_variables":{},
+    "global_dataTypes":{}
 }
 
 global_stack=[]

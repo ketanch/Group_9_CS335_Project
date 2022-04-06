@@ -424,19 +424,68 @@ class CParser:
         '''
         p[0] = Node(name='type_specifier')
         p[0]=p[1]
+    
+
 
     def p_struct_or_union_specifier(self, p):
         '''struct_or_union_specifier    : struct_or_union '{' struct_declaration_list '}'
                                         | struct_or_union ID '{' struct_declaration_list '}'
                                         | struct_or_union ID
         '''
-        p[0] = Node(name='struct_or_union_specifier',type=p[1])
+        p[0] = Node(name='struct_or_union_specifier',type=p[1].type)
+        global global_node
         if(len(p) == 5):
             p[0].children = p[0].children+[p[1], p[3]]
         elif(len(p) == 6):
             p[0].children = p[0].children+[p[1], p[2], p[4]]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
+        if(global_node==symbolTable):
+            global_node["global_dataTypes"][p[2]]={"type":p[1].type}
+            global_node["global_dataTypes"][p[2]]={"type":p[1].type}
+            tmp_ar=p[4].children
+            i=0
+            while i<len(tmp_ar):
+                child=tmp_ar[i]
+                if child.name=="struct_declaration":
+                    if(child.children[1].name=="struct_declarator_list"):
+                        tmp_node=child.children[1]
+                        while(tmp_node!=None):
+                            if(len(tmp_node.children)):
+                                global_node["global_dataTypes"][p[2]][tmp_node.children[1].idName]=child.type
+                            else:
+                                global_node["global_dataTypes"][p[2]][tmp_node.idName]=child.type
+                            try:
+                                tmp_node=tmp_node.children[0]
+                            except:
+                                tmp_node=None
+                    else:
+                        global_node["global_dataTypes"][p[2]][child.idName]=child.type
+                else:
+                    tmp_ar=tmp_ar+child.children
+                i+=1
+
+        else:
+            global_node["dataTypes"][p[2]]={"type":p[1].type}
+            tmp_ar=p[4].children
+            i=0
+            while i<len(tmp_ar):
+                child=tmp_ar[i]
+                if child.name=="struct_declaration":
+                    if(child.children[1].name=="struct_declarator_list"):
+                        tmp_node=child.children[1]
+                        while(tmp_node!=None):
+                            global_node["dataTypes"][p[2]][tmp_node.children[1].idName]=child.type
+                            try:
+                                tmp_node=tmp_node.children[0]
+                            except:
+                                tmp_node=None
+                    else:
+                        global_node["dataTypes"][p[2]][child.idName]=child.type
+                else:
+                    tmp_ar=tmp_ar+child.children
+                i+=1
+
 
     def p_struct_or_union(self, p):
         '''struct_or_union  : STRUCT
@@ -453,16 +502,16 @@ class CParser:
             p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
-
     def p_struct_declaration(self, p):
         '''struct_declaration   : specifier_qualifier_list ';'
                                 | specifier_qualifier_list struct_declarator_list ';'
         '''
-        p[0] = Node(name='struct_declaration')
+        p[0] = Node(name='struct_declaration',type=p[1].type)
         if(len(p) == 3):
             p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
+            p[0].idName=p[2].idName
 
     def p_specifier_qualifier_list(self, p):
         '''specifier_qualifier_list   : type_specifier specifier_qualifier_list
@@ -470,7 +519,7 @@ class CParser:
                                       | type_qualifier specifier_qualifier_list
                                       | type_qualifier
         '''
-        p[0] = Node(name='specifier_qualifier_list')
+        p[0] = Node(name='specifier_qualifier_list',type=p[1].type)
         if(len(p) == 2):
             p[0]=p[1]
         else:
@@ -485,6 +534,7 @@ class CParser:
             p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[3]]
+        
 
     def p_struct_declarator(self, p):
         '''struct_declarator   : ':' constant_expression
@@ -498,6 +548,7 @@ class CParser:
             p[0].children = p[0].children+[p[2]]
         else:
             p[0].children = p[0].children+[p[1], p[3]]
+        
 
     def p_type_qualifier(self, p):
         '''type_qualifier   : CONST
@@ -514,6 +565,7 @@ class CParser:
             p[0]=p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
+        
 
     def p_direct_declarator_1(self, p):
         '''direct_declarator    : MAIN
@@ -788,6 +840,7 @@ class CParser:
         global global_node
         tmp="if"+str(len(global_stack))
         global_node[tmp]={"variables":{}}
+        global_node[tmp]={"dataTypes":{}}
         global_stack.append(global_node)
         global_node=global_node["if"+str(len(global_stack)-1)]
 
@@ -913,7 +966,8 @@ class CParser:
                     "return_type":p[0].type,
                     "scope":0
                 },
-                "variables":{}
+                "variables":{},
+                "dataTypes":{}
             }
             for child in root.children:
                 symbolTable[p[0].idName]["func_parameters"]["arguments"][child.idName]=child.type
@@ -926,7 +980,8 @@ class CParser:
                     "return_type":p[0].type,
                     "scope":0
                 },
-                "variables":{}
+                "variables":{},
+                "dataTypes":{}
             }
         
         p[0].children = p[0].children+[p[1], p[2]]
@@ -997,7 +1052,6 @@ class CParser:
         dot_data_label,dot_data_translation,i=self.dfs(root,dot_data_label,dot_data_translation,0)
         final_dot=dot_data_label + dot_data_translation + '}\n'
         open('src/ast_graph_file.dot', 'w').write(final_dot)
-        # print(symbolTable)
 
     def parse_inp(self, input):
         result = self.parser.parse(input, tracking = True)
@@ -1005,11 +1059,9 @@ class CParser:
             print("'main' function not present.")
             exit(1)
         print("Parsing completed successfully")
-        # print(result)
         self.generate_dot_ast(result)
         self.generate_dot()
-        #print(json.dumps(symbolTable,indent=2))
-        # print(symbolTable)
+        print(json.dumps(symbolTable,indent=2))
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'

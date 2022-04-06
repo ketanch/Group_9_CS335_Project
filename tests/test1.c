@@ -1,6 +1,6 @@
  int a;
  struct point {
-         int a;
+         int a,w,e,r,t,y;
          int b;
          float c;
      };
