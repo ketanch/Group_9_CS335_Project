@@ -342,31 +342,59 @@ class CParser:
                          | declaration_specifiers init_declarator_list ';'
         '''
         p[0] = Node(name='declaration',type=p[1].type)
+        global global_node
         if(len(p) == 3):
             p[0] =p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
             p[0].value=p[2].value
             p[0].idName=p[2].idName
-        global global_node
+            if(p[1].name=="struct_or_union_specifier" and p[2].name=="direct_declarator"):
+                try:
+                    global_node["dataTypes"][p[2].idName]=global_node["dataTypes"]["123"]
+                    del global_node["dataTypes"]["123"]
+                except:
+                    i=1
         #print(p[0].type, p[2].type)
         # if p[0].type.lower() != p[2].type.lower():
         #     print("Type casting from %s to %s not allowed at line = %d" % (p[2].type.lower(), p[0].type.lower(), p.lineno(0)))
         
-        if(len(global_stack)==0):
-            if p[0].idName in global_node["global_variables"].keys():
-                print("Variable redefined at line = %d" % (p.lineno(1)))
-                raise SyntaxError
-                exit(-1)
-            global_node["global_variables"][p[0].idName]={}
-            global_node["global_variables"][p[0].idName]["value"]=p[0].value
-        else:
+        if(len(global_stack)==0 and p[0].type!="struct" and p[0].type!="union"):
             if p[0].idName in global_node["variables"].keys():
                 print("Variable redefined at line = %d" % (p.lineno(1)))
                 raise SyntaxError
                 exit(-1)
             global_node["variables"][p[0].idName]={}
             global_node["variables"][p[0].idName]["value"]=p[0].value
+            global_node["variables"][p[0].idName]["type"]=p[0].type
+        elif(p[0].type!="struct" and p[0].type!="union"):
+            if p[0].idName in global_node["variables"].keys():
+                print("Variable redefined at line = %d" % (p.lineno(1)))
+                raise SyntaxError
+                exit(-1)
+            global_node["variables"][p[0].idName]={}
+            global_node["variables"][p[0].idName]["value"]=p[0].value
+            global_node["variables"][p[0].idName]["type"]=p[0].type
+        tmp_node=p[1]
+        while(len(tmp_node.children)==2 and tmp_node!=None):
+            global_node["variables"][p[0].idName][tmp_node.children[0].value]=1
+            if(len(tmp_node.children)):
+                tmp_node=tmp_node.children[1]
+            else:
+                tmp_node=None
+            if(tmp_node.name=="type_specifier"):
+                global_node["variables"][p[0].idName]["type"]=tmp_node.type
+        if(p[0].children[1].name=="direct_declarator"):
+            if(len(p[0].children[1].children)==2):
+                global_node["variables"][p[0].idName]["array"]="1"
+                global_node["variables"][p[0].idName]["size"]=p[0].children[1].children[1].value
+        if(p[0].children[1].name=="init_declarator"):
+            if(len(p[0].children[1].children)==3):
+                if(len(p[0].children[1].children[0].children)==2):
+                    global_node["variables"][p[0].idName]["array"]="1"
+                    global_node["variables"][p[0].idName]["size"]=p[0].children[1].children[0].children[1].value
+
+
 
     def p_declaration_specifiers(self, p):
         '''declaration_specifiers   : type_specifier
@@ -436,56 +464,101 @@ class CParser:
         global global_node
         if(len(p) == 5):
             p[0].children = p[0].children+[p[1], p[3]]
+            if(global_node==symbolTable):
+                global_node["dataTypes"]["123"]={"1type":p[1].type}
+                tmp_ar=p[3].children
+                i=0
+                while i<len(tmp_ar):
+                    child=tmp_ar[i]
+                    if child.name=="struct_declaration":
+                        if(child.children[1].name=="struct_declarator_list"):
+                            tmp_node=child.children[1]
+                            while(tmp_node!=None):
+                                if(len(tmp_node.children)):
+                                    global_node["dataTypes"]["123"][tmp_node.children[1].idName]=child.type
+                                else:
+                                    global_node["dataTypes"]["123"][tmp_node.idName]=child.type
+                                try:
+                                    tmp_node=tmp_node.children[0]
+                                except:
+                                    tmp_node=None
+                        else:
+                            global_node["dataTypes"]["123"][child.idName]=child.type
+                    else:
+                        tmp_ar=tmp_ar+child.children
+                    i+=1
+
+            else:
+                global_node["dataTypes"][p[2]]={"1type":p[1].type}
+                tmp_ar=p[3].children
+                i=0
+                while i<len(tmp_ar):
+                    child=tmp_ar[i]
+                    if child.name=="struct_declaration":
+                        if(child.children[1].name=="struct_declarator_list"):
+                            tmp_node=child.children[1]
+                            while(tmp_node!=None):
+                                global_node["dataTypes"][p[2]][tmp_node.children[1].idName]=child.type
+                                try:
+                                    tmp_node=tmp_node.children[0]
+                                except:
+                                    tmp_node=None
+                        else:
+                            global_node["dataTypes"][p[2]][child.idName]=child.type
+                    else:
+                        tmp_ar=tmp_ar+child.children
+                    i+=1
         elif(len(p) == 6):
             p[0].children = p[0].children+[p[1], p[2], p[4]]
+            if(global_node==symbolTable):
+                global_node["dataTypes"][p[2]]={"1type":p[1].type}
+                global_node["dataTypes"][p[2]]={"1type":p[1].type}
+                tmp_ar=p[4].children
+                i=0
+                while i<len(tmp_ar):
+                    child=tmp_ar[i]
+                    if child.name=="struct_declaration":
+                        if(child.children[1].name=="struct_declarator_list"):
+                            tmp_node=child.children[1]
+                            while(tmp_node!=None):
+                                if(len(tmp_node.children)):
+                                    global_node["dataTypes"][p[2]][tmp_node.children[1].idName]=child.type
+                                else:
+                                    global_node["dataTypes"][p[2]][tmp_node.idName]=child.type
+                                try:
+                                    tmp_node=tmp_node.children[0]
+                                except:
+                                    tmp_node=None
+                        else:
+                            global_node["dataTypes"][p[2]][child.idName]=child.type
+                    else:
+                        tmp_ar=tmp_ar+child.children
+                    i+=1
+
+            else:
+                global_node["dataTypes"][p[2]]={"1type":p[1].type}
+                tmp_ar=p[4].children
+                i=0
+                while i<len(tmp_ar):
+                    child=tmp_ar[i]
+                    if child.name=="struct_declaration":
+                        if(child.children[1].name=="struct_declarator_list"):
+                            tmp_node=child.children[1]
+                            while(tmp_node!=None):
+                                global_node["dataTypes"][p[2]][tmp_node.children[1].idName]=child.type
+                                try:
+                                    tmp_node=tmp_node.children[0]
+                                except:
+                                    tmp_node=None
+                        else:
+                            global_node["dataTypes"][p[2]][child.idName]=child.type
+                    else:
+                        tmp_ar=tmp_ar+child.children
+                    i+=1
         else:
             p[0].children = p[0].children+[p[1], p[2]]
-        if(global_node==symbolTable):
-            global_node["global_dataTypes"][p[2]]={"type":p[1].type}
-            global_node["global_dataTypes"][p[2]]={"type":p[1].type}
-            tmp_ar=p[4].children
-            i=0
-            while i<len(tmp_ar):
-                child=tmp_ar[i]
-                if child.name=="struct_declaration":
-                    if(child.children[1].name=="struct_declarator_list"):
-                        tmp_node=child.children[1]
-                        while(tmp_node!=None):
-                            if(len(tmp_node.children)):
-                                global_node["global_dataTypes"][p[2]][tmp_node.children[1].idName]=child.type
-                            else:
-                                global_node["global_dataTypes"][p[2]][tmp_node.idName]=child.type
-                            try:
-                                tmp_node=tmp_node.children[0]
-                            except:
-                                tmp_node=None
-                    else:
-                        global_node["global_dataTypes"][p[2]][child.idName]=child.type
-                else:
-                    tmp_ar=tmp_ar+child.children
-                i+=1
-
-        else:
-            global_node["dataTypes"][p[2]]={"type":p[1].type}
-            tmp_ar=p[4].children
-            i=0
-            while i<len(tmp_ar):
-                child=tmp_ar[i]
-                if child.name=="struct_declaration":
-                    if(child.children[1].name=="struct_declarator_list"):
-                        tmp_node=child.children[1]
-                        while(tmp_node!=None):
-                            global_node["dataTypes"][p[2]][tmp_node.children[1].idName]=child.type
-                            try:
-                                tmp_node=tmp_node.children[0]
-                            except:
-                                tmp_node=None
-                    else:
-                        global_node["dataTypes"][p[2]][child.idName]=child.type
-                else:
-                    tmp_ar=tmp_ar+child.children
-                i+=1
-
+            p[0].type=p[2]
+        
 
     def p_struct_or_union(self, p):
         '''struct_or_union  : STRUCT
@@ -926,7 +999,7 @@ class CParser:
             except:
                 p[0].value=p[4]
             # print(type(p[0].value))
-            symbolTable["global_variables"][p[0].idName]={
+            symbolTable["variables"][p[0].idName]={
                 "value":p[0].value,
                 "type":'int',
                 "scope":0,
@@ -1006,6 +1079,7 @@ class CParser:
             p[0] =p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
+            
 
     #def find_column(self, input, token):
     #    line_start = input.rfind('\n', 0, token.lexpos) + 1
@@ -1061,7 +1135,7 @@ class CParser:
         print("Parsing completed successfully")
         self.generate_dot_ast(result)
         self.generate_dot()
-        print(json.dumps(symbolTable,indent=2))
+        print(json.dumps(symbolTable,indent=4))
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'
