@@ -1,11 +1,31 @@
+from pprint import pprint
+from cgi import print_form
 from ctypes.wintypes import INT
+from numpy import var
 import ply.yacc as yacc
+from yaml import emit
 from lexer import *
 import sys
 import pydot
 from classes import *
-from symbolTab import symbolTable,global_stack,global_node
+from symbolTab import *
 import json
+
+var_cnt = 0
+
+def create_new_var():
+    global var_cnt
+    out = '__var_' + str(var_cnt)
+    var_cnt += 1
+    return out
+
+def emit(dest, src1, op, src2):
+    #if len(tac_code) > 1 and tac_code[-2][2].startswith('post_'):
+    #    temp_ent = tac_code.pop()
+    #    tac_code.append([dest, src1, op, src2])
+    #    tac_code.append(temp_ent)
+    #    return
+    tac_code.append([dest, src1, op, src2])
 
 class CParser:
 
@@ -88,11 +108,8 @@ class CParser:
 
     def p_postfix_expression_1(self, p):
         '''postfix_expression   : primary_expression
-                                | postfix_expression '[' expression ']'
                                 | postfix_expression '(' ')'
                                 | postfix_expression '(' argument_expression_list ')'
-                                | postfix_expression ADDU
-                                | postfix_expression SUBU
                                 | '(' type_name ')' '{' initializer_list '}'
                                 | '(' type_name ')' '{' initializer_list ',' '}'
         '''
@@ -104,20 +121,55 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[3]]
         elif(len(p) == 4):
             p[0]=p[1]
-        elif(len(p) == 3):
-            p[0].children = p[0].children+[p[1], p[2]]
         elif(len(p) == 7):
             p[0].children = p[0].children+[p[2], p[5]]
         else:
             p[0].children = p[0].children+[p[2], p[5]]
 
     def p_postfix_expression_2(self, p):
+        '''postfix_expression   : postfix_expression SUBU
+        '''
+        p[0] = Node(name='postfix_expression')
+        p[0].type = p[1].type
+        p[0].children = p[0].children+[p[1], p[2]]
+        tmp_var1 = create_new_var()
+        tmp_var2 = create_new_var()
+        emit(tmp_var1, p[1].idName, '', '')
+        emit(tmp_var2, p[1].idName, '-' + str(p[1].type), 1)
+        emit(p[1].idName, tmp_var2, '', '')
+        p[0].idName = tmp_var1
+
+    def p_postfix_expression_3(self, p):
+        '''postfix_expression   : postfix_expression ADDU
+        '''
+        p[0] = Node(name='postfix_expression')
+        p[0].type = p[1].type
+        p[0].children = p[0].children+[p[1], p[2]]
+        tmp_var1 = create_new_var()
+        tmp_var2 = create_new_var()
+        emit(tmp_var1, p[1].idName, '', '')
+        emit(tmp_var2, p[1].idName, '+' + str(p[1].type), 1)
+        emit(p[1].idName, tmp_var2, '', '')
+        p[0].idName = tmp_var1
+
+    def p_postfix_expression_4(self, p):
         '''postfix_expression   : postfix_expression '.' ID
                                 | postfix_expression MEMB_ACCESS ID
         '''
         p[0] = Node(name='postfix_expression')
         if(len(p) == 4):
             p[0].children = p[0].children+[p[1], p[2], p[3]]
+
+    def p_postfix_expression_5(self, p):
+        '''postfix_expression   : postfix_expression '[' expression ']'
+        '''
+        p[0] = Node(name='postfix_expression')
+        p[0].children = p[0].children+[p[1], p[3]]
+        tmp_var1 = create_new_var()
+        emit(tmp_var1, p[3].value, '*', data_type_size[global_node["variables"][p[1].idName]["type"]])
+        tmp_var2 = create_new_var()
+        emit(tmp_var2, p[1].idName, '+', tmp_var1)
+        p[0].idName = tmp_var2
 
     def p_argument_expression_list(self, p):
         '''argument_expression_list : assignment_expression
@@ -129,19 +181,48 @@ class CParser:
         else:
             p[0].children = p[0].children+[p[1], p[3]]
 
-    def p_unary_expression(self, p):
+    def p_unary_expression_1(self, p):
         '''unary_expression : postfix_expression
                             | ADDU unary_expression
-                            | SUBU unary_expression
-                            | unary_operator unary_expression
-                            | SIZEOF unary_expression
-                            | SIZEOF '(' type_name ')'
         '''
         p[0] = Node(name='unary_expression')
         if(len(p) == 2):
             p[0]=p[1]
             p[0].type = p[1].type
         elif((len(p) == 3)):
+            p[0].idName = p[2].idName
+            tmp_var = create_new_var()
+            emit(tmp_var, p[2].idName, '+' + str(p[2].type), 1)
+            emit(p[2].idName, tmp_var, '', '')
+            p[0].children = p[0].children+[p[1], p[2]]
+
+    def p_unary_expression_2(self, p):
+        '''unary_expression : SUBU unary_expression
+        '''
+        p[0] = Node(name='unary_expression')
+        p[0].idName = p[2].idName
+        tmp_var = create_new_var()
+        emit(tmp_var, p[2].idName, '-' + str(p[2].type), 1)
+        emit(p[2].idName, tmp_var, '', '')
+        p[0].children = p[0].children+[p[1], p[2]]
+
+    def p_unary_expression_3(self, p):
+        '''unary_expression : unary_operator unary_expression
+        '''
+        p[0] = Node(name='unary_expression')
+        tmp_var = create_new_var()
+        emit(tmp_var, p[2].idName, str(p[1].value), '')
+        p[0].children = p[0].children+[p[1], p[2]]
+        p[0].idName = tmp_var
+
+    def p_unary_expression_4(self, p):
+        '''unary_expression : SIZEOF unary_expression
+                            | SIZEOF '(' type_name ')'
+        '''
+        p[0] = Node(name='unary_expression')
+        if((len(p) == 3)):
+            p[0].idName = p[2].idName
+            emit()
             p[0].children = p[0].children+[p[1], p[2]]
         else:
             p[0].children = p[0].children+[p[1], p[3]]
@@ -167,6 +248,9 @@ class CParser:
             p[0] = p[1]
             p[0].type = p[1].type
         else:
+            tmp_var = create_new_var()
+            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
     def p_additive_expression(self, p):
@@ -179,6 +263,13 @@ class CParser:
             p[0].type = p[1].type
             p[0]=p[1]
         else:
+            if p[1].idName == '':
+                p[1].idName = p[1].value
+            if p[3].idName == '':
+                p[3].idName = p[3].value
+            tmp_var = create_new_var()
+            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
             if p[1].type != p[3].type:
                 pass
@@ -195,6 +286,9 @@ class CParser:
         if(len(p) == 2):
             p[0]=p[1]
         else:
+            tmp_var = create_new_var()
+            emit(tmp_var, p[1].idName, p[2].value + str(p[1].type), p[3].idName)
+            p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
     def p_relational_expression(self, p):
@@ -208,6 +302,9 @@ class CParser:
         if(len(p) == 2):
             p[0]=p[1]
         else:
+            tmp_var = create_new_var()
+            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
     def p_equality_expression(self, p):
@@ -219,6 +316,9 @@ class CParser:
         if(len(p) == 2):
             p[0]=p[1]
         else:
+            tmp_var = create_new_var()
+            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
     def p_and_expression(self, p):
@@ -229,6 +329,9 @@ class CParser:
         if(len(p) == 2):
             p[0]=p[1]
         else:
+            tmp_var = create_new_var()
+            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
     def p_exclusive_or_expression(self, p):
@@ -239,6 +342,9 @@ class CParser:
         if(len(p) == 2):
             p[0]=p[1]
         else:
+            tmp_var = create_new_var()
+            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
     def p_inclusive_or_expression(self, p):
@@ -249,6 +355,9 @@ class CParser:
         if(len(p) == 2):
             p[0]=p[1]
         else:
+            tmp_var = create_new_var()
+            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
     def p_logical_and_expression(self, p):
@@ -259,6 +368,9 @@ class CParser:
         if(len(p) == 2):
             p[0]=p[1]
         else:
+            tmp_var = create_new_var()
+            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
     def p_logical_or_expression(self, p):
@@ -269,6 +381,9 @@ class CParser:
         if(len(p) == 2):
             p[0]=p[1]
         else:
+            tmp_var = create_new_var()
+            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
     def p_conditional_expression(self, p):
@@ -292,6 +407,7 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
             p[0].idName=p[1].idName
             p[0].value=p[3].value
+            emit(p[1].idName, p[3].idName, "", "")
 
     def p_assignment_operator(self, p):
         '''assignment_operator  : '='
@@ -337,7 +453,7 @@ class CParser:
     #         p[0].idName=p[2].idName
     def p_declaration(self, p):
         '''declaration  : declaration_specifiers ';'
-                         | declaration_specifiers init_declarator_list ';'
+                        | declaration_specifiers init_declarator_list ';'
         '''
         p[0] = Node(name='declaration',type=p[1].type)
         global global_node
@@ -430,6 +546,7 @@ class CParser:
             p[0].value=p[3].value
             p[0].idName=p[1].idName
             p[0].type = p[3].type
+            emit(p[1].idName, p[3].value, '', '')
         # print(p[3].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].value)
 
     def p_type_specifier_1(self, p):
@@ -1139,6 +1256,7 @@ class CParser:
             print("'main' function not present.")
             exit(1)
         print("Parsing completed successfully")
+        pprint(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
         print(json.dumps(symbolTable,indent=4))

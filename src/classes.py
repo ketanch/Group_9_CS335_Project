@@ -6,3 +6,6 @@ class Node:
         self.ast_node=ast_node
         self.children=[]
         self.idName=idName
+        self.place = ""
+        self.code = ""
+        self.offset = 0

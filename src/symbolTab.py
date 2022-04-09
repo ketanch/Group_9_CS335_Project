@@ -8,7 +8,7 @@
 #             "scope":0,
 #             "line_no":1,
 #             "isMacro":1,
-#             "isConst":1
+#             "isConst":1,
 #         }
 #         # "b":{
 #         #     .
@@ -16,6 +16,8 @@
 #         # }
 #     },
 #     "func_name":{
+#         "fp_base": 0
+#         "stack_ptr": 0
 #         "func_paramenters":{
 #             "number_args":2,
 #             "arguments":{
@@ -23,7 +25,7 @@
 #                 "b":'char'
 #             },
 #             "return_type":'int',
-#             "scope":3
+#             "scope":3,
 #         },
 #         "varibles":{
 #             "a":{
@@ -33,6 +35,7 @@
 #                 "line_no":1
 #                 "isMacro":1
 #                 "isConst":1
+#                 "offset": <>
 #             }
 #             # "b":{
 #             #     .
@@ -192,3 +195,16 @@ symbolTable={
 
 global_stack=[]
 global_node=symbolTable
+
+tac_code = []
+
+#Assuming 64 bit architecture
+data_type_size = {
+    "int": 4,
+    "long": 8,
+    "char": 1,
+    "short": 2,
+    "float": 4,
+    "double": 8,
+    "long long": 8,
+}
