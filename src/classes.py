@@ -9,3 +9,5 @@ class Node:
         self.place = ""
         self.code = ""
         self.offset = 0
+        self.expr=[]
+        self.label=[]
