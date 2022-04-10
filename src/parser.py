@@ -1123,20 +1123,57 @@ class CParser:
         emit(dest=p[-2][0], src1='', op='label', src2='')
 
     def p_MARKER3(self, p):
-        ''' MARKER3 : '(' '''
+        ''' MARKER3 : '''
         global global_node
         tmp = "scope"+str(len(global_stack))
         global_node[tmp] = {"variables": {}, "dataTypes": {}}
         global_stack.append(global_node)
         global_node = global_node["scope"+str(len(global_stack)-1)]
-
+    
+    def p_WHILE_MARKER1(self, p):
+        ''' WHILE_MARKER1 : '''
+        global global_node
+        tmp = "scope"+str(len(global_stack))
+        global_node[tmp] = {"variables": {}, "dataTypes": {}}
+        global_stack.append(global_node)
+        global_node = global_node["scope"+str(len(global_stack)-1)]
+        label=create_new_label()
+        emit(dest=label,src1='',op='label',src2='')
+        p[0]=label
+    
+    def p_WHILE_MARKER2(self, p):
+        ''' WHILE_MARKER2 : '''
+        label=create_new_label()
+        emit(dest=label,src1=p[-2].idName,op='goto',src2='eq 0')
+        p[0]=label
+    
+    def p_WHILE_MARKER3(self, p):
+        ''' WHILE_MARKER3 : '''
+        emit(dest=p[-6],src1='',op='goto',src2='')
+        emit(dest=p[-2],src1='',op='label',src2='')
+        
+    def p_FOR_MARKER1(self, p):
+        ''' FOR_MARKER1 : '''
+        global global_node
+        tmp = "scope"+str(len(global_stack))
+        global_node[tmp] = {"variables": {}, "dataTypes": {}}
+        global_stack.append(global_node)
+        global_node = global_node["scope"+str(len(global_stack)-1)]
+        
+    def p_FOR_MARKER2(self, p):
+        ''' FOR_MARKER2 : '''
+    
+    def p_FOR_MARKER3(self, p):
+        ''' FOR_MARKER3 : '''
+        
     def p_iteration_statement_1(self, p):
-        '''iteration_statement  : WHILE MARKER3 expression ')' statement
+        '''iteration_statement  : WHILE WHILE_MARKER1 '(' expression ')' WHILE_MARKER2 statement WHILE_MARKER3
                                 | DO MARKER1 statement WHILE '(' expression ')' ';'
-                                | FOR MARKER3 expression_statement expression_statement ')'  statement
-                                | FOR MARKER3 declaration expression_statement ')'  statement
-                                | FOR MARKER3 declaration expression_statement expression ')' statement                                                
+                                | FOR MARKER3 '(' expression_statement expression_statement ')'  statement
+                                | FOR MARKER3 '(' expression_statement expression_statement expression ')'  statement
         '''
+        # FOR MARKER3 '(' declaration expression_statement ')'  statement
+        #                         | FOR MARKER3 '(' declaration expression_statement expression ')' statement  
         p[0] = Node(name='iteration_statement')
         if(len(p) == 6):
             p[0].children = p[0].children+[p[1], p[3], p[5]]
