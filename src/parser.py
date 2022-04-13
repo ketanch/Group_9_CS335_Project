@@ -1413,41 +1413,39 @@ class CParser:
         self.parser = yacc.yacc(
             start='translation_unit', module=self, **kwargs)
 
-    def dfs(self, node, dot_data_label, dot_data_translation, i):
-        if(isinstance(node, str)):
-            dot_data_label += f't{i} [label="{node}" color=red];n'
-            parent_i = i
-            i += 1
-            # dot_data_label+=f't{i} [label="{node.value}"];n'
-            # dot_data_translation+=f't{parent_i}->{i};n'
-            return dot_data_label, dot_data_translation, i
+    def dfs (self,node,dot_data_label,dot_data_translation,i):
+        if(isinstance(node,str)):
+            dot_data_label+=f'\t{i} [label="{node}" color=red];\n'
+            parent_i=i
+            i+=1
+            # dot_data_label+=f'\t{i} [label="{node.value}"];\n'
+            # dot_data_translation+=f'\t{parent_i}->{i};\n'
+            return dot_data_label,dot_data_translation,i
 
-        if(node == None or isinstance(node, list)):
-            return dot_data_label, dot_data_translation, i
-        dot_data_label += f't{i} [label="{node.name}"];n'
-        parent_i = i
-        i += 1
-        if(len(node.children) == 0):
-            dot_data_label += f't{i} [label="{node.value}" color=red];n'
-            dot_data_translation += f't{parent_i}->{i};n'
-            i += 1
+        if(node==None):
+            return dot_data_label,dot_data_translation,i
+        dot_data_label+=f'\t{i} [label="{node.name}"];\n'
+        parent_i=i
+        i+=1
+        if(len(node.children)==0):
+            dot_data_label+=f'\t{i} [label="{node.value}" color=red];\n'
+            dot_data_translation+=f'\t{parent_i}->{i};\n'
+            i+=1
         for child in node.children:
-            dot_data_translation += f't{parent_i}->{i};n'
-            dot_data_label, dot_data_translation, i = self.dfs(
-                child, dot_data_label, dot_data_translation, i)
+            dot_data_translation+=f'\t{parent_i}->{i};\n'
+            dot_data_label,dot_data_translation,i=self.dfs(child,dot_data_label,dot_data_translation,i)
+            
+        return dot_data_label,dot_data_translation,i
 
-        return dot_data_label, dot_data_translation, i
-
-    def generate_dot_ast(self, root):
-        dot_data_label = 'digraph DFA {n'
-        dot_data_translation = ''
-        dot_data_label, dot_data_translation, i = self.dfs(
-            root, dot_data_label, dot_data_translation, 0)
-        final_dot = dot_data_label + dot_data_translation + '}n'
+    def generate_dot_ast(self,root):
+        dot_data_label = 'digraph DFA {\n'
+        dot_data_translation=''
+        dot_data_label,dot_data_translation,i=self.dfs(root,dot_data_label,dot_data_translation,0)
+        final_dot=dot_data_label + dot_data_translation + '}\n'
         open('src/ast_graph_file.dot', 'w').write(final_dot)
 
     def parse_inp(self, input):
-        result = self.parser.parse(input, tracking=True)
+        result = self.parser.parse(input, tracking = True)
         if "main" not in symbolTable.keys():
             print("'main' function not present.")
             exit(1)
@@ -1455,31 +1453,31 @@ class CParser:
         pprint(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        print(json.dumps(symbolTable, indent=4))
+        print(json.dumps(symbolTable,indent=4))
 
     def generate_dot(self):
-        dot_data = 'digraph DFA {n'
+        dot_data = 'digraph DFA {\n'
         goto_t = self.parser.goto
         action_t = self.parser.action
         max_state = max(max(goto_t.keys()), max(action_t.keys()))
         for i in range(max_state):
-            dot_data += f't{i} [label="I{i}"];n'
+            dot_data += f'\t{i} [label="I{i}"];\n'
 
         for state1, edges in goto_t.items():
             for label, state2 in edges.items():
-                dot_data += f't{state1} -> {state2} [label="{label}" color=red];n'
+                dot_data += f'\t{state1} -> {state2} [label="{label}" color=red];\n'
 
         for state1, edges in action_t.items():
             for label, state2 in edges.items():
                 if state2 >= 0:
-                    dot_data += f't{state1} -> {state2} [label="{label}" color=green];n'
+                    dot_data += f'\t{state1} -> {state2} [label="{label}" color=green];\n'
 
-        dot_data += '}n'
+        dot_data += '}\n'
         # print(dot_data)
         #open('src/graph_file.dot', 'w').write(dot_data)
         #graphs = pydot.graph_from_dot_data(dot_data)
         #graph = graphs[0]
-        # graph.write_png('graph.png')
+        #graph.write_png('graph.png')
         # print("DONE")
 
 

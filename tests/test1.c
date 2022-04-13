@@ -1,8 +1,8 @@
 int main()
 {
-    struct point{
-        int x;
-        int y;
-    };
-    const struct point x;
+    int a  =10;
+    ++a;
+    a++;
+    a--;
+    --a;
 }
