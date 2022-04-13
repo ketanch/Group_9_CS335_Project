@@ -537,6 +537,10 @@ class CParser:
                 if(len(child.children)==2):
                     global_node["variables"][child.idName]["array"]=1
                     global_node["variables"][child.idName]["size"]=child.children[1].value
+                if(len(child.children)==3):
+                    global_node["variables"][child.idName]["array"]=1
+                    global_node["variables"][child.idName]["size"]=len(child.children[2].array_list)
+                    global_node["variables"][child.idName]["value"]=child.children[2].array_list
                 tmp_node=tmp_node.children[0]
             global_node["variables"][tmp_node.idName]={
                 "type":p[1].type,
@@ -553,7 +557,10 @@ class CParser:
             if(len(tmp_node.children)==2):
                 global_node["variables"][tmp_node.idName]["array"]=1
                 global_node["variables"][tmp_node.idName]["size"]=tmp_node.children[1].value        
-
+            if(len(tmp_node.children)==3):
+                    global_node["variables"][tmp_node.idName]["array"]=1
+                    global_node["variables"][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)
+                    global_node["variables"][tmp_node.idName]["value"]=tmp_node.children[2].array_list
     
     def p_declaration_specifiers(self, p):
         '''declaration_specifiers   : type_specifier
@@ -571,7 +578,6 @@ class CParser:
             if(p[1].name=="type_qualifier"):
                 p[0].qualifier_list=p[2].qualifier_list
                 p[0].qualifier_list.append(p[1].value)
-                print(p[0].qualifier_list,p[1].value)
 
     def p_init_declarator_list(self, p):
         '''init_declarator_list : init_declarator
@@ -596,6 +602,7 @@ class CParser:
             p[0].value = p[3].value
             p[0].idName = p[1].idName
             p[0].type = p[3].type
+            p[0].array_list=p[3].array_list
             emit(p[1].idName, p[3].idName if p[3].idName!="" else p[3].value, '', '')
           
     def p_type_specifier_1(self, p):
@@ -1000,8 +1007,11 @@ class CParser:
         p[0] = Node(name='initializer_list')
         if(len(p) == 4):
             p[0].children = p[0].children+[p[1], p[3]]
+            p[0].array_list=p[1].array_list
+            p[0].array_list.append(p[3].value)
         else:
             p[0] = p[1]
+            p[0].array_list.append(p[1].value)
     # we are not implementing designation list
 
     def p_statement(self, p):
@@ -1476,7 +1486,7 @@ class CParser:
         pprint(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        # print(json.dumps(symbolTable,indent=4))
+        print(json.dumps(symbolTable,indent=4))
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'

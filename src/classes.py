@@ -12,3 +12,4 @@ class Node:
         self.expr=[]
         self.label=[]
         self.qualifier_list=[]
+        self.array_list=[]
