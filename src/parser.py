@@ -16,7 +16,8 @@ label_cnt = 0
 switch_label = []
 switch_expr = []
 return_stack = []
-break_label = ''
+break_label_stack = []
+continue_label_stack=[]
 
 
 def create_new_var():
@@ -1026,7 +1027,7 @@ class CParser:
        '''
         p[0] = Node(name='labeled_statement')
         switch_label.append(p[2])
-        global break_label
+        global break_label_stack
         if(len(p) == 5):
             p[0].children = p[0].children+[p[1], p[4]]
             switch_expr.append('')
@@ -1094,8 +1095,8 @@ class CParser:
         label2 = create_new_label()
         emit(dest=label1, src1='', src2='', op='goto')
         p[0] = [label1, label2]
-        global break_label
-        break_label = label2
+        global break_label_stack
+        break_label_stack.append(label2)
 
     def p_SMARKER3(self, p):
         '''SMARKER3 :
@@ -1113,6 +1114,7 @@ class CParser:
         if flg >= 0:
             emit(dest=switch_label[flg], src1='', op='goto', src2='')
         emit(dest=p[-2][1], src1='', op='label', src2='')
+        break_label_stack.pop()
 
     def p_MARKER1(self, p):
         ''' MARKER1 : '''
@@ -1125,7 +1127,7 @@ class CParser:
             label1 = create_new_label()
             label2 = create_new_label()
             p[0] = [label1, label2]
-            emit(dest=label1, src1=p[-2].idName, op='goto', src2='eq 0')
+            emit(dest=label1, src1=p[-2].idName if p[-2].idName!="" else p[-2].value, op='goto', src2='eq 0')
         else:
             emit(dest=p[-4][1], src1='', op='goto', src2='')
             emit(dest=p[-4][0], src1='', op='label', src2='')
@@ -1166,17 +1168,21 @@ class CParser:
         label = create_new_label()
         emit(dest=label, src1='', op='label', src2='')
         p[0] = label
+        continue_label_stack.append(label)
 
     def p_WHILE_MARKER2(self, p):
         ''' WHILE_MARKER2 : '''
         label = create_new_label()
-        emit(dest=label, src1=p[-2].idName, op='goto', src2='eq 0')
+        emit(dest=label, src1=p[-2].idName if p[-2].idName!="" else p[-2].value, op='goto', src2='eq 0')
         p[0] = label
+        break_label_stack.append(label)
 
     def p_WHILE_MARKER3(self, p):
         ''' WHILE_MARKER3 : '''
         emit(dest=p[-6], src1='', op='goto', src2='')
         emit(dest=p[-2], src1='', op='label', src2='')
+        break_label_stack.pop()
+        continue_label_stack.pop()
 
     def p_iteration_statement_1(self, p):
         '''iteration_statement  : WHILE WHILE_MARKER1 '(' expression ')' WHILE_MARKER2 statement WHILE_MARKER3
@@ -1193,10 +1199,10 @@ class CParser:
         p[0].children = p[0].children+[p[1], p[4], p[6], p[8], p[10]]
 
     def p_iteration_statement_3(self, p):
-        '''iteration_statement : DO DO_MARKER1 statement WHILE '(' expression ')' DO_MARKER2 ';'
+        '''iteration_statement : DO DO_MARKER1 statement WHILE DO_MARKER2 '(' expression ')' DO_MARKER3 ';'
        '''
         p[0] = Node(name='iteration_statement')
-        p[0].children = p[0].children+[p[1], p[4], p[5], p[7]]
+        p[0].children = p[0].children+[p[1], p[3], p[4], p[7]]
 
     def p_DO_MARKER1(self, p):
         ''' DO_MARKER1 :
@@ -1206,17 +1212,27 @@ class CParser:
         global_node[tmp] = {"variables": {}, "dataTypes": {}}
         global_stack.append(global_node)
         global_node = global_node["scope"+str(len(global_stack)-1)]
-        label = create_new_label()
-        emit(dest=label, src1='', op='label', src2='')
-        p[0] = label
-
+        label1 = create_new_label()
+        label2 = create_new_label()
+        label3 = create_new_label()
+        emit(dest=label1, src1='', op='label', src2='')
+        p[0] = [label1,label2,label3]
+        break_label_stack.append(label3)
+        continue_label_stack.append(label2)
+    
     def p_DO_MARKER2(self, p):
         ''' DO_MARKER2 :
        '''
-        label = create_new_label()
-        emit(dest=label, src1=p[-2].idName, op='goto', src2='eq 0')
-        emit(dest=p[-6], src1='', op='goto', src2='')
-        emit(dest=label, src1='', op='label', src2='')
+        emit(dest=p[-3][1],src1='',op='label',src2='')
+
+    def p_DO_MARKER3(self, p):
+        ''' DO_MARKER3 :
+       '''
+        emit(dest=p[-7][2], src1=p[-2].idName, op='goto', src2='eq 0')
+        emit(dest=p[-7][0], src1='', op='goto', src2='')
+        emit(dest=p[-7][2], src1='', op='label', src2='')
+        break_label_stack.pop()
+        continue_label_stack.pop()
 
     def p_FOR_MARKER1(self, p):
         '''
@@ -1225,6 +1241,7 @@ class CParser:
         label = create_new_label()
         emit(dest=label, src1='', op='label', src2='')
         p[0] = label
+        continue_label_stack.append(label)
 
     def p_FOR_MARKER2(self, p):
         '''FOR_MARKER2 : '''
@@ -1236,6 +1253,7 @@ class CParser:
         label3 = create_new_label()
         emit(dest=label3, src1='', op='label', src2='')
         p[0] = [label1, label2, label3]
+        break_label_stack.append(label1)
 
     def p_FOR_MARKER3(self, p):
         '''FOR_MARKER3 : '''
@@ -1252,6 +1270,8 @@ class CParser:
         label = create_new_label()
         emit(dest=p[-6][2], src1='', op='goto', src2='')
         emit(dest=p[-6][0], src1='', op='label', src2='')
+        break_label_stack.pop()
+        continue_label_stack.pop()
 
     def p_jump_statement_1(self, p):
         '''jump_statement   : GOTO ID ';'
@@ -1262,7 +1282,10 @@ class CParser:
         p[0] = Node(name='jump_statement')
         if(len(p) == 3):
             p[0] = p[1]
-            emit(dest=break_label, src1='', op='goto', src2='')
+            if(p[1]=="break"):
+                emit(dest=break_label_stack[-1], src1='', op='goto', src2='')
+            else:
+                emit(dest=continue_label_stack[-1], src1='', op='goto', src2='')
         elif len(p) == 4:
             p[0].children = p[0].children+[p[1], p[2]]
             ret_type = global_node["func_parameters"]["return_type"].lower()
@@ -1453,7 +1476,7 @@ class CParser:
         pprint(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        print(json.dumps(symbolTable,indent=4))
+        # print(json.dumps(symbolTable,indent=4))
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'
