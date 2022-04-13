@@ -1,5 +1,8 @@
-int main(){
-    int a=10;
-    for(i=10;i>0;i--){
-    }
+int main()
+{
+    struct point{
+        int x;
+        int y;
+    };
+    const struct point x;
 }

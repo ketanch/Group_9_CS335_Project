@@ -11,3 +11,4 @@ class Node:
         self.offset = 0
         self.expr=[]
         self.label=[]
+        self.qualifier_list=[]

@@ -208,6 +208,7 @@ class CParser:
         p[0] = Node(name='argument_expression')
         if(len(p) == 2):
             p[0] = p[1]
+            
         else:
             p[0].children = p[0].children+[p[1], p[3]]
 
@@ -241,7 +242,12 @@ class CParser:
        '''
         p[0] = Node(name='unary_expression')
         tmp_var = create_new_var()
-        emit(tmp_var, p[2].idName, str(p[1].value), '')
+        var=p[1].value
+        if p[1].value == '&':
+            var = 'mem'
+        elif p[1].value == '*':
+            var = 'deref'
+        emit(tmp_var, p[2].idName, var, '')
         p[0].children = p[0].children+[p[1], p[2]]
         p[0].idName = tmp_var
 
@@ -259,8 +265,6 @@ class CParser:
     def p_unary_operator(self, p):
         '''unary_operator   : '&'
                            | '*'
-                           | '+'
-                           | '-'
                            | '~'
                            | '!'                      
        '''
@@ -275,7 +279,6 @@ class CParser:
         p[0] = Node(name='multipicative_expression')
         if(len(p) == 2):
             p[0] = p[1]
-            p[0].type = p[1].type
         else:
             tmp_var = create_new_var()
             emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
@@ -289,7 +292,6 @@ class CParser:
        '''
         p[0] = Node(name='additive_expression')
         if(len(p) == 2):
-            p[0].type = p[1].type
             p[0] = p[1]
         else:
             if p[1].idName == '':
@@ -304,6 +306,7 @@ class CParser:
                 pass
                 #print("Implicit type casting not allowed between %s and %s at line %d" % (p[1].type, p[3].type, p.lineno(0)))
             p[0].type = p[1].type
+            # p[0].value = tmp_var
             #print(p[1].type, "dfdf",p[3].type)
 
     def p_shift_expression(self, p):
@@ -316,8 +319,7 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName, p[2].value +
-                 str(p[1].type), p[3].idName)
+            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -376,6 +378,7 @@ class CParser:
         p[0] = Node(name='exclusive_or_expression')
         if(len(p) == 2):
             p[0] = p[1]
+            
         else:
             tmp_var = create_new_var()
             emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
@@ -439,12 +442,13 @@ class CParser:
 
         if(len(p) == 2):
             p[0] = p[1]
+            # print(p[0].idName)
+            
         else:
-            p[3].idName = p[3].value
             p[0].children = p[0].children+[p[1], p[2], p[3]]
             p[0].idName = p[1].idName
             p[0].value = p[3].value
-            emit(p[1].idName, p[3].idName, "", "")
+            emit(p[1].idName, p[3].idName if p[3].idName!='' else p[3].value, "", "")
 
     def p_assignment_operator(self, p):
         '''assignment_operator  : '='
@@ -506,45 +510,50 @@ class CParser:
                     del global_node["dataTypes"]["123"]
                 except:
                     i = 1
-        #print(p[0].type, p[2].type)
-        # if p[0].type.lower() != p[2].type.lower():
-        #     print("Type casting from %s to %s not allowed at line = %d" % (p[2].type.lower(), p[0].type.lower(), p.lineno(0)))
-
-        if(len(global_stack) == 0 and p[0].type != "struct" and p[0].type != "union"):
+        
+        if( p[0].type != "struct" and p[0].type != "union"):
             if p[0].idName in global_node["variables"].keys():
                 print("Variable redefined at line = %d" % (p.lineno(1)))
                 raise SyntaxError
                 exit(-1)
-            global_node["variables"][p[0].idName] = {}
-            global_node["variables"][p[0].idName]["value"] = p[0].value
-            global_node["variables"][p[0].idName]["type"] = p[0].type
-        elif(p[0].type != "struct" and p[0].type != "union"):
-            if p[0].idName in global_node["variables"].keys():
-                print("Variable redefined at line = %d" % (p.lineno(1)))
-                raise SyntaxError
-                exit(-1)
-            global_node["variables"][p[0].idName] = {}
-            global_node["variables"][p[0].idName]["value"] = p[0].value
-            global_node["variables"][p[0].idName]["type"] = p[0].type
-        tmp_node = p[1]
-        while(len(tmp_node.children) == 2 and tmp_node != None):
-            global_node["variables"][p[0].idName][tmp_node.children[0].value] = 1
-            if(len(tmp_node.children)):
-                tmp_node = tmp_node.children[1]
-            else:
-                tmp_node = None
-            if(tmp_node.name == "type_specifier"):
-                global_node["variables"][p[0].idName]["type"] = tmp_node.type
-        if(p[0].children[1].name == "direct_declarator"):
-            if(len(p[0].children[1].children) == 2):
-                global_node["variables"][p[0].idName]["array"] = "1"
-                global_node["variables"][p[0].idName]["size"] = p[0].children[1].children[1].value
-        if(p[0].children[1].name == "init_declarator"):
-            if(len(p[0].children[1].children) == 3):
-                if(len(p[0].children[1].children[0].children) == 2):
-                    global_node["variables"][p[0].idName]["array"] = "1"
-                    global_node["variables"][p[0].idName]["size"] = p[0].children[1].children[0].children[1].value
+            tmp_node = p[2]
+            # for multiple declarations in one line
+            while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
+                child=tmp_node.children[1]
+                global_node["variables"][child.idName]={
+                    "type":p[1].type,
+                    "value":child.value,
+                    "array":0,
+                    "size":0,
+                    "offset":0,
+                    "const":0,
+                    "volatile":0
+                }
+                # checking for const,unsigned,volatile
+                for quality in p[1].qualifier_list:
+                    global_node["variables"][child.idName][quality]=1
+                # checking if it is an array
+                if(len(child.children)==2):
+                    global_node["variables"][child.idName]["array"]=1
+                    global_node["variables"][child.idName]["size"]=child.children[1].value
+                tmp_node=tmp_node.children[0]
+            global_node["variables"][tmp_node.idName]={
+                "type":p[1].type,
+                "value":tmp_node.value,
+                "array":0,
+                "size":0,
+                "offset":0,
+                "const":0,
+                "volatile":0
+            }
+            # checking for const,unsigned,volatile
+            for quality in p[1].qualifier_list:
+                global_node["variables"][tmp_node.idName][quality]=1
+            if(len(tmp_node.children)==2):
+                global_node["variables"][tmp_node.idName]["array"]=1
+                global_node["variables"][tmp_node.idName]["size"]=tmp_node.children[1].value        
 
+    
     def p_declaration_specifiers(self, p):
         '''declaration_specifiers   : type_specifier
                                    | type_qualifier
@@ -553,10 +562,15 @@ class CParser:
        '''
         p[0] = Node(name='declaration_specifiers', type=p[1].type)
         if(len(p) == 2):
-            # p[0].children = p[0].children+[p[1]]
             p[0] = p[1]
+            
         else:
             p[0].children = p[0].children+[p[1], p[2]]
+            p[0].type=p[1].type if p[1].name=="type_specifier" else p[2].type
+            if(p[1].name=="type_qualifier"):
+                p[0].qualifier_list=p[2].qualifier_list
+                p[0].qualifier_list.append(p[1].value)
+                print(p[0].qualifier_list,p[1].value)
 
     def p_init_declarator_list(self, p):
         '''init_declarator_list : init_declarator
@@ -581,9 +595,8 @@ class CParser:
             p[0].value = p[3].value
             p[0].idName = p[1].idName
             p[0].type = p[3].type
-            emit(p[1].idName, p[3].value, '', '')
-        # print(p[3].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].children[0].value)
-
+            emit(p[1].idName, p[3].idName if p[3].idName!="" else p[3].value, '', '')
+          
     def p_type_specifier_1(self, p):
         '''type_specifier   : VOID
                            | INT
@@ -647,15 +660,13 @@ class CParser:
                         if(child.children[1].name == "struct_declarator_list"):
                             tmp_node = child.children[1]
                             while(tmp_node != None):
-                                global_node["dataTypes"][p[2]
-                                                         ][tmp_node.children[1].idName] = child.type
+                                global_node["dataTypes"][p[2]][tmp_node.children[1].idName] = child.type
                                 try:
                                     tmp_node = tmp_node.children[0]
                                 except:
                                     tmp_node = None
                         else:
-                            global_node["dataTypes"][p[2]
-                                                     ][child.idName] = child.type
+                            global_node["dataTypes"][p[2]][child.idName] = child.type
                     else:
                         tmp_ar = tmp_ar+child.children
                     i += 1
@@ -672,18 +683,15 @@ class CParser:
                             tmp_node = child.children[1]
                             while(tmp_node != None):
                                 if(len(tmp_node.children)):
-                                    global_node["dataTypes"][p[2]
-                                                             ][tmp_node.children[1].idName] = child.type
+                                    global_node["dataTypes"][p[2]][tmp_node.children[1].idName] = child.type
                                 else:
-                                    global_node["dataTypes"][p[2]
-                                                             ][tmp_node.idName] = child.type
+                                    global_node["dataTypes"][p[2]][tmp_node.idName] = child.type
                                 try:
                                     tmp_node = tmp_node.children[0]
                                 except:
                                     tmp_node = None
                         else:
-                            global_node["dataTypes"][p[2]
-                                                     ][child.idName] = child.type
+                            global_node["dataTypes"][p[2]][child.idName] = child.type
                     else:
                         tmp_ar = tmp_ar+child.children
                     i += 1
@@ -698,15 +706,13 @@ class CParser:
                         if(child.children[1].name == "struct_declarator_list"):
                             tmp_node = child.children[1]
                             while(tmp_node != None):
-                                global_node["dataTypes"][p[2]
-                                                         ][tmp_node.children[1].idName] = child.type
+                                global_node["dataTypes"][p[2]][tmp_node.children[1].idName] = child.type
                                 try:
                                     tmp_node = tmp_node.children[0]
                                 except:
                                     tmp_node = None
                         else:
-                            global_node["dataTypes"][p[2]
-                                                     ][child.idName] = child.type
+                            global_node["dataTypes"][p[2]][child.idName] = child.type
                     else:
                         tmp_ar = tmp_ar+child.children
                     i += 1
@@ -791,6 +797,7 @@ class CParser:
             p[0] = p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
+            p[0].idName = p[2].idName
 
     def p_direct_declarator_1(self, p):
         '''direct_declarator    : MAIN
@@ -843,9 +850,12 @@ class CParser:
        '''
         p[0] = Node(name='pointer')
         if(len(p) == 4):
-            p[0].children = p[0].children+[p[2], p[3]]
+            p[0].children = p[0].children+[p[1],p[2], p[3]]
         elif(len(p) == 3):
-            p[0].children = p[0].children+[p[2]]
+            p[0].children = p[0].children+[p[1],p[2]]
+        else:
+            p[0].value=p[1]
+            p[0].idName=p[1]
 
     def p_type_qualifier_list(self, p):
         '''type_qualifier_list  : type_qualifier
@@ -1199,7 +1209,6 @@ class CParser:
         label = create_new_label()
         emit(dest=label, src1='', op='label', src2='')
         p[0] = label
-        print(label)
 
     def p_DO_MARKER2(self, p):
         ''' DO_MARKER2 :
@@ -1310,7 +1319,7 @@ class CParser:
                 "scope": 0,
                 "line_no": 0,
                 "isMacro": 1,
-                "isConst": 1
+                "const": 1
             }
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3], p[5], p[8]]
@@ -1390,7 +1399,7 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[2]]
 
     # def find_column(self, input, token):
-    #    line_start = input.rfind('\n', 0, token.lexpos) + 1
+    #    line_start = input.rfind('n', 0, token.lexpos) + 1
     #    return (token.lexpos - line_start) + 1
 
     def p_error(self, p):
@@ -1406,35 +1415,35 @@ class CParser:
 
     def dfs(self, node, dot_data_label, dot_data_translation, i):
         if(isinstance(node, str)):
-            dot_data_label += f'\t{i} [label="{node}" color=red];\n'
+            dot_data_label += f't{i} [label="{node}" color=red];n'
             parent_i = i
             i += 1
-            # dot_data_label+=f'\t{i} [label="{node.value}"];\n'
-            # dot_data_translation+=f'\t{parent_i}->{i};\n'
+            # dot_data_label+=f't{i} [label="{node.value}"];n'
+            # dot_data_translation+=f't{parent_i}->{i};n'
             return dot_data_label, dot_data_translation, i
 
         if(node == None or isinstance(node, list)):
             return dot_data_label, dot_data_translation, i
-        dot_data_label += f'\t{i} [label="{node.name}"];\n'
+        dot_data_label += f't{i} [label="{node.name}"];n'
         parent_i = i
         i += 1
         if(len(node.children) == 0):
-            dot_data_label += f'\t{i} [label="{node.value}" color=red];\n'
-            dot_data_translation += f'\t{parent_i}->{i};\n'
+            dot_data_label += f't{i} [label="{node.value}" color=red];n'
+            dot_data_translation += f't{parent_i}->{i};n'
             i += 1
         for child in node.children:
-            dot_data_translation += f'\t{parent_i}->{i};\n'
+            dot_data_translation += f't{parent_i}->{i};n'
             dot_data_label, dot_data_translation, i = self.dfs(
                 child, dot_data_label, dot_data_translation, i)
 
         return dot_data_label, dot_data_translation, i
 
     def generate_dot_ast(self, root):
-        dot_data_label = 'digraph DFA {\n'
+        dot_data_label = 'digraph DFA {n'
         dot_data_translation = ''
         dot_data_label, dot_data_translation, i = self.dfs(
             root, dot_data_label, dot_data_translation, 0)
-        final_dot = dot_data_label + dot_data_translation + '}\n'
+        final_dot = dot_data_label + dot_data_translation + '}n'
         open('src/ast_graph_file.dot', 'w').write(final_dot)
 
     def parse_inp(self, input):
@@ -1446,26 +1455,26 @@ class CParser:
         pprint(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        # print(json.dumps(symbolTable, indent=4))
+        print(json.dumps(symbolTable, indent=4))
 
     def generate_dot(self):
-        dot_data = 'digraph DFA {\n'
+        dot_data = 'digraph DFA {n'
         goto_t = self.parser.goto
         action_t = self.parser.action
         max_state = max(max(goto_t.keys()), max(action_t.keys()))
         for i in range(max_state):
-            dot_data += f'\t{i} [label="I{i}"];\n'
+            dot_data += f't{i} [label="I{i}"];n'
 
         for state1, edges in goto_t.items():
             for label, state2 in edges.items():
-                dot_data += f'\t{state1} -> {state2} [label="{label}" color=red];\n'
+                dot_data += f't{state1} -> {state2} [label="{label}" color=red];n'
 
         for state1, edges in action_t.items():
             for label, state2 in edges.items():
                 if state2 >= 0:
-                    dot_data += f'\t{state1} -> {state2} [label="{label}" color=green];\n'
+                    dot_data += f't{state1} -> {state2} [label="{label}" color=green];n'
 
-        dot_data += '}\n'
+        dot_data += '}n'
         # print(dot_data)
         #open('src/graph_file.dot', 'w').write(dot_data)
         #graphs = pydot.graph_from_dot_data(dot_data)
