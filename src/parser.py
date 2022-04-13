@@ -318,9 +318,15 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            tmp=""
+            if(p[3].idName):
+                tmp=p[3].idName
+            else:
+                tmp=p[3].value
+            emit(tmp_var, p[1].idName, p[2] + str(p[1].type),tmp)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
+        
 
     def p_equality_expression(self, p):
         '''equality_expression  : relational_expression 
@@ -1152,27 +1158,12 @@ class CParser:
         emit(dest=p[-6],src1='',op='goto',src2='')
         emit(dest=p[-2],src1='',op='label',src2='')
         
-    def p_FOR_MARKER1(self, p):
-        ''' FOR_MARKER1 : '''
-        global global_node
-        tmp = "scope"+str(len(global_stack))
-        global_node[tmp] = {"variables": {}, "dataTypes": {}}
-        global_stack.append(global_node)
-        global_node = global_node["scope"+str(len(global_stack)-1)]
-        
-    def p_FOR_MARKER2(self, p):
-        ''' FOR_MARKER2 : '''
-    
-    def p_FOR_MARKER3(self, p):
-        ''' FOR_MARKER3 : '''
-        
     def p_iteration_statement_1(self, p):
         '''iteration_statement  : WHILE WHILE_MARKER1 '(' expression ')' WHILE_MARKER2 statement WHILE_MARKER3
                                 | DO MARKER1 statement WHILE '(' expression ')' ';'
-                                | FOR MARKER3 '(' expression_statement expression_statement ')'  statement
-                                | FOR MARKER3 '(' expression_statement expression_statement expression ')'  statement
         '''
         # FOR MARKER3 '(' declaration expression_statement ')'  statement
+                                # | FOR MARKER3 '(' expression_statement FOR_MARKER1 expression_statement FOR_MARKER2 expression FOR_MARKER3 ')' FOR_MARKER4 statement FOR_MARKER5
         #                         | FOR MARKER3 '(' declaration expression_statement expression ')' statement  
         p[0] = Node(name='iteration_statement')
         if(len(p) == 6):
@@ -1181,13 +1172,45 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[2], p[3], p[5]]
         elif(len(p) == 7):
             p[0].children = p[0].children+[p[1], p[3], p[4], p[6]]
-
-    def p_iteration_statement_2(self, p):
-        '''iteration_statement  : FOR '(' expression_statement expression_statement expression ')' statement                                                 
-        '''
+            
+    def p_iteration_statement_2(self,p):
+        '''iteration_statement : FOR MARKER3 '(' expression_statement FOR_MARKER1 expression_statement FOR_MARKER2 expression FOR_MARKER3 ')' FOR_MARKER4 statement FOR_MARKER5'''
         p[0] = Node(name='iteration_statement')
-        if(len(p) == 8):
-            p[0].children = p[0].children+[p[1], p[3], p[4], p[5], p[7]]
+        p[0].children = p[0].children+[p[1], p[4], p[6], p[8], p[10]]
+
+    def p_FOR_MARKER1(self,p):
+        '''
+        FOR_MARKER1 :
+        '''
+        label=create_new_label()
+        emit(dest=label,src1='',op='label',src2='')
+        p[0]=label
+    def p_FOR_MARKER2(self,p):
+        '''FOR_MARKER2 : '''
+        label1=create_new_label()
+        if(p[-1].idName):
+            emit(dest=label1,src1=p[-1].idName,op='goto',src2='eq 0')
+        label2=create_new_label()
+        emit(dest=label2,src1='',op='goto',src2='')
+        label3=create_new_label()
+        emit(dest=label3,src1='',op='label',src2='')
+        p[0]=[label1,label2,label3]
+    
+    def p_FOR_MARKER3(self,p):
+        '''FOR_MARKER3 : '''
+        label=create_new_label()
+        emit(dest=p[-4],src1='',op='goto',src2='')
+    
+    def p_FOR_MARKER4(self,p):
+        '''FOR_MARKER4 : '''
+        label=create_new_label()
+        emit(dest=p[-4][1],src1='',op='label',src2='')
+    
+    def p_FOR_MARKER5(self,p):
+        '''FOR_MARKER5 : '''
+        label=create_new_label()
+        emit(dest=p[-6][2],src1='',op='goto',src2='')
+        emit(dest=p[-6][0],src1='',op='label',src2='')
 
     def p_jump_statement_1(self, p):
         '''jump_statement   : GOTO ID ';'
@@ -1350,7 +1373,7 @@ class CParser:
             # dot_data_translation+=f'\t{parent_i}->{i};\n'
             return dot_data_label, dot_data_translation, i
 
-        if(node == None):
+        if(node == None or isinstance(node, list)):
             return dot_data_label, dot_data_translation, i
         dot_data_label += f'\t{i} [label="{node.name}"];\n'
         parent_i = i
