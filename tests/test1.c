@@ -1,10 +1,5 @@
 
 int main()
 {   
-    struct point{
-        int x;
-        int y;
-    };
-    struct point p;
-    int x=5;
+    int a[]={1,2,3};
 }

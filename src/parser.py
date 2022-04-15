@@ -190,8 +190,14 @@ class CParser:
                                | postfix_expression MEMB_ACCESS ID
        '''
         p[0] = Node(name='postfix_expression')
-        if(len(p) == 4):
-            p[0].children = p[0].children+[p[1], p[2], p[3]]
+        p[0].children = p[0].children+[p[1], p[2], p[3]]
+        t=get_var_type(p[1].idName,global_stack,global_node)
+        if(p[2]=='.' and t[-3:]=='ptr'):
+            pr_error('%s is a pointer; did you mean to use "->" ? in line number %d' % (p[1].idName, p.lineno(1)))
+        if(p[2]=='->' and t[-3:]!='ptr'):
+            pr_error('%s is not a pointer; did you mean to use "." ? in line number %d' % (p[1].idName, p.lineno(1)))
+        p[0].idName=p[1].idName+p[2]+p[3]
+
 
     def p_postfix_expression_5(self, p):
         '''postfix_expression   : postfix_expression '[' expression ']'
@@ -498,7 +504,10 @@ class CParser:
     #         p[0].idName=p[2].idName
     def p_DECLMARKER(self,p):
         '''DECLMARKER : '''
-        p[-2].type=p[-1].type
+        try:
+            p[-2].type=p[-1].type
+        except:
+            _=0
     def p_declaration(self, p):
         '''declaration  : declaration_specifiers ';'
                        | declaration_specifiers DECLMARKER init_declarator_list ';'
