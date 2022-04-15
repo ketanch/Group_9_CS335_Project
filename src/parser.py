@@ -41,13 +41,7 @@ def create_new_label():
     return out
 
 
-def emit(dest, src1, op, src2):
-    # if len(tac_code) > 1 and tac_code[-2][2].startswith('post_'):
-    #    temp_ent = tac_code.pop()
-    #    tac_code.append([dest, src1, op, src2])
-    #    tac_code.append(temp_ent)
-    #    return
-    tac_code.append([dest, src1, op, src2])
+
 
 
 class CParser:
@@ -291,7 +285,7 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            emit(tmp_var, p[1].idName if p[1].idName!="" else p[1].value, p[2] + str(p[1].type), p[3].idName if p[3].idName!="" else p[3].value)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -448,11 +442,11 @@ class CParser:
                                    | unary_expression assignment_operator assignment_expression
        '''
         p[0] = Node(name='assignment_expression')
-
         if(len(p) == 2):
             p[0] = p[1]
             
         else:
+            
             if check_if_const_changed(p[1].idName, global_node ,global_stack):
                 pr_error("Tried to change constant %s at line = %d" % (p[1].idName, p.lineno(0)))
             p[0].children = p[0].children+[p[1], p[2], p[3]]
@@ -502,28 +496,32 @@ class CParser:
     #         p[0].children = p[0].children+[p[1], p[2]]
     #         p[0].value=p[2].value
     #         p[0].idName=p[2].idName
+    def p_DECLMARKER(self,p):
+        '''DECLMARKER : '''
+        p[-2].type=p[-1].type
     def p_declaration(self, p):
         '''declaration  : declaration_specifiers ';'
-                       | declaration_specifiers init_declarator_list ';'
+                       | declaration_specifiers DECLMARKER init_declarator_list ';'
         '''
         p[0] = Node(name='declaration', type=p[1].type)
         global global_node
         if(len(p) == 3):
             p[0] = p[1]
         else:
-            if check_variable_func_conflict(p[2].idName, symbolTable):
+            if check_variable_func_conflict(p[3].idName, symbolTable):
                 pr_error("Function name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
-            p[0].children = p[0].children+[p[1], p[2]]
-            p[0].value = p[2].value
-            p[0].idName = p[2].idName
+            p[0].children = p[0].children+[p[1], p[3]]
+            p[0].value = p[3].value
+            p[0].idName = p[3].idName
         
-            if( p[0].type != "struct" and p[0].type != "union"):
+            if( not p[0].type.startswith("struct") and not p[0].type.startswith("union")):
                 if check_variable_redefined(p[0].idName,global_node):
                     pr_error("Variable redefined at line = %d" % (p.lineno(1)))
                 # adding variables to symbol table
-                add_var(tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node)
+                add_var(tmp_node=p[3],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=0,global_stack=global_stack)
             else:
-                add_var(tmp_node=p[2],type=struct_name,qualifier_list=p[1].qualifier_list,global_node=global_node)
+                add_var(tmp_node=p[3],type=p[0].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=1,global_stack=global_stack)
+
     
     def p_declaration_specifiers_1(self, p):
         '''declaration_specifiers   : type_specifier
@@ -568,13 +566,14 @@ class CParser:
         p[0].idName = p[1]
         if(len(p) == 2):
             p[0] = p[1]
+            emit(p[1].idName,p[1].value if p[1].value!='' else p[1].idName,"","")
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
             p[0].value = p[3].value
             p[0].idName = p[1].idName
             p[0].type = p[3].type
             p[0].array_list=p[3].array_list
-            emit(p[1].idName, p[3].idName if p[3].idName!="" else p[3].value, '', '')
+            emit(p[1].idName,p[3].value if p[3].value!='' else p[3].idName,"","")
           
     def p_type_specifier_1(self, p):
         '''type_specifier   : VOID
@@ -622,7 +621,7 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[2], p[5]]
         else:
             p[0].children+=[p[1],p[2]]
-            p[0].type=p[2]
+            p[0].type=p[1].type+p[2]
             
 
 
@@ -712,10 +711,49 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[2]]
             p[0].idName = p[2].idName
             p[0].type = 'ptr'
-
-    def p_direct_declarator_1(self, p):
-        '''direct_declarator    : MAIN
+    def p_func_declarator(self, p):
+        '''func_declarator : pointer direct_declarator
+                            | func_direct_declarator
+       '''
+        p[0] = Node(name='declarator', type = "")
+        if(len(p) == 2):
+            p[0] = p[1]
+        else:
+            p[0].children = p[0].children+[p[1], p[2]]
+            p[0].idName = p[2].idName
+            p[0].type = 'ptr'
+    def p_func_direct_declarator_1(self, p):
+        '''func_direct_declarator : MAIN
                                | ID
+                               | '(' declarator ')'
+       '''
+        p[0] = Node(name='func_direct_declarator')
+        if(len(p) == 2):
+            p[0].value = p[1]
+            p[0].idName = p[1]
+        if(len(p) == 4):
+            p[0].children = p[0].children+[p[2]]
+
+    def p_func_direct_declarator_2(self, p):
+        '''func_direct_declarator    : func_direct_declarator '[' ']'
+                               | func_direct_declarator '[' type_qualifier_list assignment_expression ']'
+                               | func_direct_declarator '[' type_qualifier_list ']'
+                               | func_direct_declarator '[' assignment_expression ']'
+                               | func_direct_declarator '(' parameter_type_list ')'
+                               | func_direct_declarator '(' ')'
+                               | func_direct_declarator '(' identifier_list ')'
+       '''
+        p[0] = Node(name='func_direct_declarator', idName=p[1].idName)
+        if(len(p) == 4):
+            p[0] = p[1]
+            #if p[2] == '[':
+            #    pr_error("JODD ho kya")
+        elif(len(p) == 6):
+            p[0].children = p[0].children+[p[1], p[2], p[4]]
+        else:
+            p[0].children = p[0].children+[p[1], p[3]]
+    def p_direct_declarator_1(self, p):
+        '''direct_declarator    : ID
                                | '(' declarator ')'
        '''
         p[0] = Node(name='direct_declarator')
@@ -1277,7 +1315,7 @@ class CParser:
     #     else:
     #         p[0].children = p[0].children+[p[1], p[2], p[3], p[4]]
     def p_function_definition_init(self, p):
-        '''function_definition_init : declaration_specifiers declarator'''
+        '''function_definition_init : declaration_specifiers func_declarator'''
         global global_node
         p[0] = Node(name='function_definition_init',
                     type=p[1].type, idName=p[2].idName)

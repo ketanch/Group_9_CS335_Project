@@ -1,3 +1,11 @@
+from symbolTab import tac_code
+def emit(dest, src1, op, src2):
+    # if len(tac_code) > 1 and tac_code[-2][2].startswith('post_'):
+    #    temp_ent = tac_code.pop()
+    #    tac_code.append([dest, src1, op, src2])
+    #    tac_code.append(temp_ent)
+    #    return
+    tac_code.append([dest, src1, op, src2])
 ret_type_check = {
     "INT": ["INT", "LONG", "LONG_LONG"],
     "CHAR": ["CHAR"],
@@ -7,6 +15,13 @@ ret_type_check = {
 
 type_cast_arr = {
     "int": ["char", "float"]
+}
+
+defaut_values={
+    "int":0,
+    "char":'a',
+    "float":0.0,
+    "bool":False
 }
 
 def pr_error(err):
@@ -54,10 +69,12 @@ def check_if_const_changed(var,global_node,global_stack):
     return False
 
 
-def add_var(tmp_node,type,qualifier_list,global_node):
+def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
     prev_node=tmp_node
     while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
+        
         child=tmp_node.children[1]
+        # emit(child.idName, child.value if child.value!="" else child.idName, '', '')
         global_node["variables"][child.idName]={
             "type":type,
             "value":child.value,
@@ -65,8 +82,14 @@ def add_var(tmp_node,type,qualifier_list,global_node):
             "size":0,
             "offset":0,
             "const":0,
-            "volatile":0
+            "volatile":0,
+            "struct":isStruct,
+            "elements":{}
         }
+        #adding struct elements in var
+        if(isStruct):
+            add_struct_elements_in_var(global_stack,global_node,global_node["variables"][child.idName])
+
         # checking for const,unsigned,volatile
         for quality in qualifier_list:
             global_node["variables"][child.idName][quality]=1
@@ -92,8 +115,13 @@ def add_var(tmp_node,type,qualifier_list,global_node):
             "size":0,
             "offset":0,
             "const":0,
-            "volatile":0
+            "volatile":0,
+            "struct":isStruct,
+            "elements":{}
         }
+        if(isStruct):
+            add_struct_elements_in_var(global_stack,global_node,global_node["variables"][tmp_node.idName])
+        # emit(tmp_node.idName, tmp_node.value if tmp_node.value!="" else tmp_node.idName, '', '')
     # checking for const,unsigned,volatile
     for quality in qualifier_list:
         global_node["variables"][tmp_node.idName][quality]=1
@@ -115,7 +143,7 @@ def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
             "size":0,
             "offset":0,
             "const":0,
-            "volatile":0
+            "volatile":0,
         }
         # checking for const,unsigned,volatile
         for quality in qualifier_list:
@@ -138,7 +166,7 @@ def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
         "size":0,
         "offset":0,
         "const":0,
-        "volatile":0
+        "volatile":0,
     }
     # checking for const,unsigned,volatile
     for quality in qualifier_list:
@@ -150,3 +178,21 @@ def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
             global_node["dataTypes"][struct_name][tmp_node.idName]["array"]=1
             global_node["dataTypes"][struct_name][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)
             global_node["dataTypes"][struct_name][tmp_node.idName]["value"]=tmp_node.children[2].array_list
+
+def add_struct_elements_in_var(global_stack,global_node,node):
+    name=''
+    if(node["type"].startswith("struct")):
+        name=node["type"][6:]
+    else:
+        name=node["type"][5:]
+    flg=0
+    struct_node={}
+    if name in global_node["dataTypes"]:
+        flg=1
+        struct_node=global_node["dataTypes"][name]
+    for i in range(len(global_stack)-1, 0, -1):
+        if flg:
+            break
+        if name in global_stack[i]["dataTypes"]:
+            struct_node=global_stack[i]["dataTypes"][name]  
+    node["elements"]=struct_node  
