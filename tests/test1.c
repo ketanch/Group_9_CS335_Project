@@ -1,5 +1,6 @@
 int main()
-{   
-    int a;
-    a = 6.9;
+{   //func();
+    int i = 1;
+    int *a = &i, j = 2;
+    return 0;
 }
