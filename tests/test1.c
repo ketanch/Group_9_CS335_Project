@@ -1,14 +1,12 @@
-struct {
-    int x,y,z;
-    int y;
-} point ;
-int main()
-{   //func();
-//     struct x{
-//     int *a,*b;
-//     float *f;
-// };
-// struct x k;
-// int x;
 
+int main()
+{   
+struct point{
+    int z;
+};
+struct p{
+    int z;
+};
+struct point x;
+x.z=4;
 }

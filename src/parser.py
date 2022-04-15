@@ -20,6 +20,7 @@ return_stack = []
 break_label_stack = []
 continue_label_stack=[]
 struct_name="123"
+unknown_struct_cnt=0
 
 def create_new_var():
     global var_cnt
@@ -27,6 +28,11 @@ def create_new_var():
     var_cnt += 1
     return out
 
+def create_new_struct_name():
+    global unknown_struct_cnt
+    out = '__struct_' + str(unknown_struct_cnt)
+    unknown_struct_cnt += 1
+    return out
 
 def create_new_label():
     global label_cnt
@@ -311,7 +317,6 @@ class CParser:
                 #print("Implicit type casting not allowed between %s and %s at line %d" % (p[1].type, p[3].type, p.lineno(0)))
             p[0].type = p[1].type
             # p[0].value = tmp_var
-            #print(p[1].type, "dfdf",p[3].type)
 
     def p_shift_expression(self, p):
         '''shift_expression : additive_expression
@@ -446,7 +451,6 @@ class CParser:
 
         if(len(p) == 2):
             p[0] = p[1]
-            # print(p[0].idName)
             
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
@@ -510,18 +514,14 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[2]]
             p[0].value = p[2].value
             p[0].idName = p[2].idName
-            if(p[1].name == "struct_or_union_specifier" and p[2].name == "direct_declarator"):
-                try:
-                    global_node["dataTypes"][p[2].idName] = global_node["dataTypes"]["123"]
-                    del global_node["dataTypes"]["123"]
-                except:
-                    i = 1
         
-        if( p[0].type != "struct" and p[0].type != "union"):
-            if check_variable_redefined(p[0].idName,global_node):
-                pr_error("Variable redefined at line = %d" % (p.lineno(1)))
-            # adding variables to symbol table
-            add_var(tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node)
+            if( p[0].type != "struct" and p[0].type != "union"):
+                if check_variable_redefined(p[0].idName,global_node):
+                    pr_error("Variable redefined at line = %d" % (p.lineno(1)))
+                # adding variables to symbol table
+                add_var(tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node)
+            else:
+                add_var(tmp_node=p[2],type=struct_name,qualifier_list=p[1].qualifier_list,global_node=global_node)
     
     def p_declaration_specifiers_1(self, p):
         '''declaration_specifiers   : type_specifier
@@ -553,8 +553,10 @@ class CParser:
         p[0] = Node(name='init_declarator_list')
         if(len(p) == 2):
             p[0] = p[1]
+            
         else:
             p[0].children = p[0].children+[p[1], p[3]]
+            
 
     def p_init_declarator(self, p):
         '''init_declarator  : declarator '='  initializer
@@ -598,9 +600,12 @@ class CParser:
         if(isinstance(p[-1],str)):
             global_node["dataTypes"][p[-1]] = {"1type": p[-2].type}
             struct_name=p[-1]
+            # if check_struct_redefined(p[-1],global_node["dataTypes"]):
+            #     pr_error("Struct redefined")
         else:
-            global_node["dataTypes"]["123"] = {"1type": p[-1].type}
-            struct_name="123"
+            struct_name=create_new_struct_name()
+            global_node["dataTypes"][struct_name] = {"1type": p[-1].type}
+            
 
     def p_struct_or_union_specifier(self, p):
         '''struct_or_union_specifier    : struct_or_union STRUCTMARKER1 '{' struct_declaration_list '}'
@@ -609,10 +614,13 @@ class CParser:
        '''
         p[0] = Node(name='struct_or_union_specifier', type=p[1].type)
         global global_node
-        if(len(p) == 5):
+        if(len(p) == 6):
             p[0].children = p[0].children+[p[1], p[4]]
         elif(len(p) == 7):
             p[0].children = p[0].children+[p[1], p[2], p[5]]
+        else:
+            p[0].children+=[p[1],p[2]]
+            p[0].type=p[2]
             
 
 
@@ -644,6 +652,8 @@ class CParser:
         else:
             p[0].children = p[0].children+[p[1], p[2]]
             p[0].idName = p[2].idName
+            if check_variable_redefined_struct(p[0].idName,global_node["dataTypes"][struct_name]):
+                pr_error("Struct element redefined at line = %d" % (p.lineno(1)))
             add_struct_element(struct_name= struct_name,tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node)
             
             
@@ -1241,7 +1251,6 @@ class CParser:
                 p[0].value = p[4].value
             except:
                 p[0].value = p[4]
-            # print(type(p[0].value))
             symbolTable["variables"][p[0].idName] = {
                 "value": p[0].value,
                 "type": 'int',
@@ -1288,7 +1297,6 @@ class CParser:
             for child in root.children:
                 symbolTable[p[0].idName]["func_parameters"]["arguments"][child.idName] = child.type
         except:
-            # print(global_node)
             global_node[p[0].idName] = {
                 "func_parameters": {
                     "number_args": 0,
@@ -1315,7 +1323,6 @@ class CParser:
         if(not tac_code[-1][2].startswith('return')):
             emit(dest='', src1='', op='return', src2='')
 
-        # print(symbolTable["func"])
 
     def p_declaration_list(self, p):
         '''declaration_list : declaration
@@ -1384,7 +1391,6 @@ class CParser:
         self.generate_dot_ast(result)
         self.generate_dot()
         print(json.dumps(symbolTable,indent=4))
-        # print(symbolTable)
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'

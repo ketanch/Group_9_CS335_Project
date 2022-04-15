@@ -33,6 +33,16 @@ def check_variable_redefined(var,global_node):
         return True
     return False
 
+def check_struct_redefined(var,global_node):
+    if var in global_node.keys():
+        return True
+    return False
+
+def check_variable_redefined_struct(var,global_node):
+    if var in global_node.keys():
+        return True
+    return False
+
 def add_var(tmp_node,type,qualifier_list,global_node):
     prev_node=tmp_node
     while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
@@ -61,7 +71,6 @@ def add_var(tmp_node,type,qualifier_list,global_node):
             global_node["variables"][child.idName]["value"]=child.children[2].array_list
         prev_node=child
         tmp_node=tmp_node.children[0]
-        
     if(tmp_node.name=='pointer'):
         global_node["variables"][prev_node.idName]["type"]+="ptr"
     else:
@@ -86,7 +95,6 @@ def add_var(tmp_node,type,qualifier_list,global_node):
             global_node["variables"][tmp_node.idName]["value"]=tmp_node.children[2].array_list
             
 def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
-    print("hello")
     while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
         child=tmp_node.children[1]
         global_node["dataTypes"][struct_name][child.idName]={
