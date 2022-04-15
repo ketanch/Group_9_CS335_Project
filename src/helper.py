@@ -43,6 +43,17 @@ def check_variable_redefined_struct(var,global_node):
         return True
     return False
 
+def check_if_const_changed(var,global_node,global_stack):
+    if var in global_node["variables"]:
+        if global_node["variables"][var]["const"]:
+            return True
+    for i in range(len(global_stack)-1, 0, -1):
+        if var in global_stack[i]["variables"]:
+            if global_stack[i]["variables"][var]["const"]:
+                return True
+    return False
+
+
 def add_var(tmp_node,type,qualifier_list,global_node):
     prev_node=tmp_node
     while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):

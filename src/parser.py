@@ -453,6 +453,8 @@ class CParser:
             p[0] = p[1]
             
         else:
+            if check_if_const_changed(p[1].idName, global_node ,global_stack):
+                pr_error("Tried to change constant %s at line = %d" % (p[1].idName, p.lineno(0)))
             p[0].children = p[0].children+[p[1], p[2], p[3]]
             p[0].idName = p[1].idName
             p[0].value = p[3].value
