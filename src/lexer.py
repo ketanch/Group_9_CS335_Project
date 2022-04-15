@@ -8,7 +8,7 @@ class CLexer:
     # Adding keywords
     reserved = {
         # Data types
-        'int': 'INT', 'float': 'FLOAT', 'double': 'DOUBLE', 'long': 'LONG', 'char': 'CHAR',
+        'int': 'INT', 'float': 'FLOAT', 'double': 'DOUBLE', 'char': 'CHAR',
         # Other
         'short': 'SHORT',
         'signed': 'SIGNED',
@@ -54,6 +54,7 @@ class CLexer:
         'ID',
         # Constant types
         'CONST_STRING', 'CONST_CHAR', 'CONST_FLOAT', 'CONST_HEX', 'CONST_OCT', 'CONST_BIN', 'CONST_INT',
+        'LONG_LONG', 'LONG',
         # Comparison Operators
         'COMP_EQUAL', 'COMP_NEQUAL', 'COMP_LTEQ', 'COMP_GTEQ',
 
@@ -126,6 +127,14 @@ class CLexer:
 
     literals = '+-*/%&,?.{}()#[];:=<>~|^!'
 
+    def t_LONG_LONG(self, t):
+        r'(long[ ]+long[ ]+int)|(long[ ]+long)'
+        return t
+    
+    def t_LONG(self, t):
+        r'(long[ ]+int)|(long)'
+        return t
+
     def t_CONST_STRING(self, t):
         r'(\"(\\.|[^\\"])*?\")'
         return t
@@ -136,7 +145,7 @@ class CLexer:
         return t
 
     def t_CONST_FLOAT(self, t):
-        r'(\d*([.]\d+)?([eE][+-]?\d+)) | (\d*[.])\d+ | (\d+[.])'
+        r'(\d*([.]\d+)+([eE][+-]?\d+)) | (\d*[.])\d+ | (\d+[.])'
         return t
 
     def t_CONST_HEX(self, t):

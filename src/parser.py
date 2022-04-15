@@ -10,6 +10,7 @@ import pydot
 from classes import *
 from symbolTab import *
 import json
+from helper import *
 
 var_cnt = 0
 label_cnt = 0
@@ -68,8 +69,7 @@ class CParser:
        '''
         p[0] = Node(name='primary_expression', value=p[1], idName=p[1])
         if (p[0].idName not in global_node["variables"] and p[0].idName not in symbolTable.keys()):
-            print("Identifier %s not defined at line = %d" %
-                  (p[0].idName, p.lineno(0)))
+            pr_error("Identifier %s not defined at line = %d" % (p[0].idName, p.lineno(0)))
 
     def p_primary_expression_2(self, p):
         '''primary_expression   : constant
@@ -101,27 +101,27 @@ class CParser:
     def p_constant_4(self, p):
         '''constant : CONST_HEX
        '''
-        p[0] = Node(name='constant', value=p[1], type='CONST_HEX')
+        p[0] = Node(name='constant', value=int(p[1], 16), type='INT')
 
     def p_constant_5(self, p):
         '''constant : CONST_OCT
        '''
-        p[0] = Node(name='constant', value=p[1], type='CONST_OCT')
+        p[0] = Node(name='constant', value=int(p[1], 8), type='INT')
 
     def p_constant_6(self, p):
         '''constant : CONST_BIN
        '''
-        p[0] = Node(name='constant', value=p[1], type='CONST_BIN')
+        p[0] = Node(name='constant', value=int(p[1], 2), type='INT')
 
     def p_constant_7(self, p):
         '''constant : TRUE
        '''
-        p[0] = Node(name='constant', value=p[1], type='TRUE')
+        p[0] = Node(name='constant', value=p[1], type='BOOL')
 
     def p_constant_8(self, p):
         '''constant : FALSE  
        '''
-        p[0] = Node(name='constant', value=p[1], type='FALSE')
+        p[0] = Node(name='constant', value=p[1], type='BOOL')
 
     def p_postfix_expression_1(self, p):
         '''postfix_expression   : primary_expression
@@ -562,12 +562,12 @@ class CParser:
                     global_node["variables"][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)
                     global_node["variables"][tmp_node.idName]["value"]=tmp_node.children[2].array_list
     
-    def p_declaration_specifiers(self, p):
+    def p_declaration_specifiers_1(self, p):
         '''declaration_specifiers   : type_specifier
                                    | type_qualifier
                                    | type_qualifier declaration_specifiers
-                                   | type_specifier declaration_specifiers
-       '''
+        '''
+    #| type_specifier declaration_specifiers'''
         p[0] = Node(name='declaration_specifiers', type=p[1].type)
         if(len(p) == 2):
             p[0] = p[1]
@@ -578,6 +578,12 @@ class CParser:
             if(p[1].name=="type_qualifier"):
                 p[0].qualifier_list=p[2].qualifier_list
                 p[0].qualifier_list.append(p[1].value)
+
+    def p_declaration_specifiers_2(self, p):
+        '''declaration_specifiers   : type_specifier declaration_specifiers
+        '''
+        pr_error("two or more data types in declaration specifiers at line %d" % (p.lineno(0)))
+        raise SyntaxError
 
     def p_init_declarator_list(self, p):
         '''init_declarator_list : init_declarator
@@ -616,6 +622,7 @@ class CParser:
                            | SIGNED
                            | UNSIGNED
                            | BOOL
+                           | LONG_LONG
        '''
         p[0] = Node(name='type_specifier', type=p[1], value=p[1])
 
@@ -845,6 +852,8 @@ class CParser:
         p[0] = Node(name='direct_declarator', idName=p[1].idName)
         if(len(p) == 4):
             p[0] = p[1]
+            if p[2] == '[':
+                pr_error("JODD ho kya")
         elif(len(p) == 6):
             p[0].children = p[0].children+[p[1], p[2], p[4]]
         else:
@@ -1299,9 +1308,8 @@ class CParser:
         elif len(p) == 4:
             p[0].children = p[0].children+[p[1], p[2]]
             ret_type = global_node["func_parameters"]["return_type"].lower()
-            if p[2].type.lower() != ret_type:
-                print("Return type mismatch at line %d. Function return type is %s whereas returning %s" % (
-                    p.lineno(0), ret_type, p[2].type.lower()))
+            if ret_type.upper() not in ret_type_check[p[2].type.upper()]:
+                pr_error("Return type mismatch at line %d. Function return type is %s whereas returning %s" % (p.lineno(0), ret_type, p[2].type.lower()))
             # label=return_stack.pop()
             tmp = p[2].idName
             if(p[2].idName == ''):
@@ -1315,8 +1323,7 @@ class CParser:
         p[0].value = p[1]
         ret_type = global_node["func_parameters"]["return_type"].lower()
         if 'void' != ret_type:
-            print("Return type mismatch at line %d. Function return type is %s whereas returning void" % (
-                p.lineno(0), ret_type))
+            pr_error("Return type mismatch at line %d. Function return type is %s whereas returning void" % (p.lineno(0), ret_type))
 
     def p_translation_unit(self, p):
         '''translation_unit : external_declaration
@@ -1436,8 +1443,9 @@ class CParser:
     #    return (token.lexpos - line_start) + 1
 
     def p_error(self, p):
-        if (p == None):
+        if p == None:
             print("EOF tokens.")
+        print(p.value)
         print(p, type(p))
         # print(p.lineno, self.find_column(p.lexpos))
         print("Syntax error in input!")
@@ -1486,7 +1494,7 @@ class CParser:
         pprint(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        print(json.dumps(symbolTable,indent=4))
+        #print(json.dumps(symbolTable,indent=4))
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'
