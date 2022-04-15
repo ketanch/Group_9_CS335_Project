@@ -1,6 +1,14 @@
+struct {
+    int x,y,z;
+    int y;
+} point ;
 int main()
 {   //func();
-    int i = 1;
-    int *a = &i, j = 2;
-    return 0;
+//     struct x{
+//     int *a,*b;
+//     float *f;
+// };
+// struct x k;
+// int x;
+
 }

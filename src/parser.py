@@ -19,7 +19,7 @@ switch_expr = []
 return_stack = []
 break_label_stack = []
 continue_label_stack=[]
-
+struct_name="123"
 
 def create_new_var():
     global var_cnt
@@ -518,54 +518,10 @@ class CParser:
                     i = 1
         
         if( p[0].type != "struct" and p[0].type != "union"):
-            if p[0].idName in global_node["variables"].keys():
+            if check_variable_redefined(p[0].idName,global_node):
                 pr_error("Variable redefined at line = %d" % (p.lineno(1)))
-                #raise SyntaxError
-                #exit(-1)
-            tmp_node = p[2]
-            # for multiple declarations in one line
-            while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
-                child=tmp_node.children[1]
-                global_node["variables"][child.idName]={
-                    "type":p[1].type,
-                    "value":child.value,
-                    "array":0,
-                    "size":0,
-                    "offset":0,
-                    "const":0,
-                    "volatile":0
-                }
-                # checking for const,unsigned,volatile
-                for quality in p[1].qualifier_list:
-                    global_node["variables"][child.idName][quality]=1
-                # checking if it is an array
-                if(len(child.children)==2):
-                    global_node["variables"][child.idName]["array"]=1
-                    global_node["variables"][child.idName]["size"]=child.children[1].value
-                if(len(child.children)==3):
-                    global_node["variables"][child.idName]["array"]=1
-                    global_node["variables"][child.idName]["size"]=len(child.children[2].array_list)
-                    global_node["variables"][child.idName]["value"]=child.children[2].array_list
-                tmp_node=tmp_node.children[0]
-            global_node["variables"][tmp_node.idName]={
-                "type":p[1].type,
-                "value":tmp_node.value,
-                "array":0,
-                "size":0,
-                "offset":0,
-                "const":0,
-                "volatile":0
-            }
-            # checking for const,unsigned,volatile
-            for quality in p[1].qualifier_list:
-                global_node["variables"][tmp_node.idName][quality]=1
-            if(len(tmp_node.children)==2):
-                global_node["variables"][tmp_node.idName]["array"]=1
-                global_node["variables"][tmp_node.idName]["size"]=tmp_node.children[1].value        
-            if(len(tmp_node.children)==3):
-                    global_node["variables"][tmp_node.idName]["array"]=1
-                    global_node["variables"][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)
-                    global_node["variables"][tmp_node.idName]["value"]=tmp_node.children[2].array_list
+            # adding variables to symbol table
+            add_var(tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node)
     
     def p_declaration_specifiers_1(self, p):
         '''declaration_specifiers   : type_specifier
@@ -636,64 +592,29 @@ class CParser:
        '''
         p[0] = Node(name='type_specifier')
         p[0] = p[1]
+    def p_STRUCTMARKER1(self,p):
+        '''STRUCTMARKER1 : '''
+        global struct_name
+        if(isinstance(p[-1],str)):
+            global_node["dataTypes"][p[-1]] = {"1type": p[-2].type}
+            struct_name=p[-1]
+        else:
+            global_node["dataTypes"]["123"] = {"1type": p[-1].type}
+            struct_name="123"
 
     def p_struct_or_union_specifier(self, p):
-        '''struct_or_union_specifier    : struct_or_union '{' struct_declaration_list '}'
-                                       | struct_or_union ID '{' struct_declaration_list '}'
+        '''struct_or_union_specifier    : struct_or_union STRUCTMARKER1 '{' struct_declaration_list '}'
+                                       | struct_or_union ID STRUCTMARKER1 '{' struct_declaration_list '}'
                                        | struct_or_union ID
        '''
         p[0] = Node(name='struct_or_union_specifier', type=p[1].type)
         global global_node
         if(len(p) == 5):
-            p[0].children = p[0].children+[p[1], p[3]]
-
-            global_node["dataTypes"][p[2]] = {"1type": p[1].type}
-            tmp_ar = p[3].children
-            print(tmp_ar[0].name,tmp_ar[1].name)
-            i = 0
-            while i < len(tmp_ar):
-                child = tmp_ar[i]
-                if child.name == "struct_declaration":
-                    if(child.children[1].name == "struct_declarator_list"):
-                        tmp_node = child.children[1]
-                        while(tmp_node != None):
-                            global_node["dataTypes"][p[2]][tmp_node.children[1].idName] = child.type
-                            try:
-                                tmp_node = tmp_node.children[0]
-                            except:
-                                tmp_node = None
-                    else:
-                        global_node["dataTypes"][p[2]][child.idName] = child.type
-                else:
-                    tmp_ar = tmp_ar+child.children
-                i += 1
-        elif(len(p) == 6):
-            p[0].children = p[0].children+[p[1], p[2], p[4]]
-
+            p[0].children = p[0].children+[p[1], p[4]]
+        elif(len(p) == 7):
+            p[0].children = p[0].children+[p[1], p[2], p[5]]
             
-            global_node["dataTypes"][p[2]] = {"1type": p[1].type}
-            tmp_ar = p[4].children
-            print(tmp_ar[0].name,tmp_ar[1].name)
-            i = 0
-            while i < len(tmp_ar):
-                child = tmp_ar[i]
-                if child.name == "struct_declaration":
-                    if(child.children[1].name == "struct_declarator_list"):
-                        tmp_node = child.children[1]
-                        while(tmp_node != None):
-                            global_node["dataTypes"][p[2]][tmp_node.children[1].idName] = child.type
-                            try:
-                                tmp_node = tmp_node.children[0]
-                            except:
-                                tmp_node = None
-                    else:
-                        global_node["dataTypes"][p[2]][child.idName] = child.type
-                else:
-                    tmp_ar = tmp_ar+child.children
-                i += 1
-        else:
-            p[0].children = p[0].children+[p[1], p[2]]
-            p[0].type = p[2]
+
 
     def p_struct_or_union(self, p):
         '''struct_or_union  : STRUCT
@@ -710,17 +631,22 @@ class CParser:
             p[0] = p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
+        
 
     def p_struct_declaration(self, p):
         '''struct_declaration   : specifier_qualifier_list ';'
                                | specifier_qualifier_list struct_declarator_list ';'
        '''
         p[0] = Node(name='struct_declaration', type=p[1].type)
+        global global_node
         if(len(p) == 3):
             p[0] = p[1]
         else:
             p[0].children = p[0].children+[p[1], p[2]]
             p[0].idName = p[2].idName
+            add_struct_element(struct_name= struct_name,tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node)
+            
+            
 
     def p_specifier_qualifier_list(self, p):
         '''specifier_qualifier_list   : type_specifier specifier_qualifier_list
@@ -1458,6 +1384,7 @@ class CParser:
         self.generate_dot_ast(result)
         self.generate_dot()
         print(json.dumps(symbolTable,indent=4))
+        # print(symbolTable)
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'
