@@ -33,7 +33,7 @@ def pr_warning(warn):
 def check_variable_not_def(var, global_stack, global_node):
     if var in global_node["variables"]:
         return False
-    for i in range(len(global_stack)-1, 0, -1):
+    for i in range(len(global_stack)-1, -1, -1):
         if var in global_stack[i]["variables"]:
             return False
     return True
@@ -41,7 +41,7 @@ def check_variable_not_def(var, global_stack, global_node):
 def get_var_type(var, global_stack, global_node):
     if var in global_node["variables"]:
         return global_node["variables"][var]["type"]
-    for i in range(len(global_stack)-1, 0, -1):
+    for i in range(len(global_stack)-1, -1, -1):
         if var in global_stack[i]["variables"]:
             return global_node["variables"][var]["type"]
     return "Not Defined"
@@ -70,7 +70,7 @@ def check_if_const_changed(var,global_node,global_stack):
     if var in global_node["variables"]:
         if global_node["variables"][var]["const"]:
             return True
-    for i in range(len(global_stack)-1, 0, -1):
+    for i in range(len(global_stack)-1, -1, -1):
         if var in global_stack[i]["variables"]:
             if global_stack[i]["variables"][var]["const"]:
                 return True
@@ -97,13 +97,11 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
         if(isStruct):
             add_struct_elements_in_var(global_stack,global_node,global_node["variables"][child.idName])
 
-        print(child.name)
         # checking for const,unsigned,volatile
         for quality in qualifier_list:
             global_node["variables"][child.idName][quality]=1
         # checking if it is an array
         if(len(child.children)==2):
-            
             if child.children[0].name=='pointer':
                  global_node["variables"][child.idName]["type"]+='ptr'
             
@@ -115,6 +113,7 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
                 if len(child.children[0].children) and child.children[0].children[0].name=='pointer':
                     global_node["variables"][child.idName]["type"]+="ptr"
                 else:
+                    
                     global_node["variables"][child.idName]["array"]=1
                     global_node["variables"][child.idName]["size"]=len(child.children[2].array_list)
                     global_node["variables"][child.idName]["value"]=child.children[2].array_list
@@ -221,7 +220,7 @@ def add_struct_elements_in_var(global_stack,global_node,node):
     if name in global_node["dataTypes"]:
         flg=1
         struct_node=global_node["dataTypes"][name]
-    for i in range(len(global_stack)-1, 0, -1):
+    for i in range(len(global_stack)-1, -1, -1):
         if flg:
             break
         if name in global_stack[i]["dataTypes"]:

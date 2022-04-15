@@ -1,5 +1,6 @@
-
-int main()
-{   
-    int a[]={1,2,3};
+struct point{
+    int x;
+};
+int main(){
+    int x[]={1};
 }
