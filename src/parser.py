@@ -21,6 +21,7 @@ break_label_stack = []
 continue_label_stack=[]
 struct_name="123"
 unknown_struct_cnt=0
+scope_count=0
 
 def create_new_var():
     global var_cnt
@@ -1066,11 +1067,12 @@ class CParser:
 
     def p_MARKER1(self, p):
         ''' MARKER1 : '''
-        global global_node
-        tmp = "scope"+str(len(global_stack))
+        global global_node,scope_count
+        tmp = "scope"+str(scope_count)
+        
         global_node[tmp] = {"variables": {}, "dataTypes": {}}
         global_stack.append(global_node)
-        global_node = global_node["scope"+str(len(global_stack)-1)]
+        global_node = global_node["scope"+str(scope_count)]
         if(p[-1] != 'else'):
             label1 = create_new_label()
             label2 = create_new_label()
@@ -1080,6 +1082,7 @@ class CParser:
             emit(dest=p[-4][1], src1='', op='goto', src2='')
             emit(dest=p[-4][0], src1='', op='label', src2='')
             p[0] = p[-4]
+        scope_count+=1
 
     def p_MARKER2(self, p):
         ''' MARKER2 : '''
