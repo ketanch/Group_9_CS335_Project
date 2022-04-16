@@ -1,7 +1,7 @@
 # Template for symbol table
 # global has scope 0
 # symbolTable={
-#     "global_variables":{
+#     "variables":{
 #         "a":{
 #             "value":3,
 #             "type":"int",

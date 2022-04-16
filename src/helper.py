@@ -30,6 +30,14 @@ def pr_error(err):
 def pr_warning(warn):
     print("\033[95mWARNING\033[00m: %s" % (warn))
 
+def get_var_data(var, global_stack, global_node):
+    if var in global_node["variables"]:
+        return global_node["variables"][var]
+    for i in range(len(global_stack)-1, 0, -1):
+        if var in global_stack[i]["variables"]:
+            return global_stack[i]["variables"][var]
+    return None
+    
 def check_variable_not_def(var, global_stack, global_node):
     if var in global_node["variables"]:
         return False
@@ -107,7 +115,7 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             
             else:
                 global_node["variables"][child.idName]["array"]=1
-                global_node["variables"][child.idName]["size"]=child.children[1].value
+                global_node["variables"][child.idName]["size"]=int(child.children[1].value)
         if(len(child.children)==3):
             if len(child.children):
                 if len(child.children[0].children) and child.children[0].children[0].name=='pointer':
@@ -142,7 +150,7 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
         global_node["variables"][tmp_node.idName][quality]=1
     if(len(tmp_node.children)==2):
         global_node["variables"][tmp_node.idName]["array"]=1
-        global_node["variables"][tmp_node.idName]["size"]=tmp_node.children[1].value        
+        global_node["variables"][tmp_node.idName]["size"]=int(tmp_node.children[1].value)        
     if(len(tmp_node.children)==3):
         if len(tmp_node.children):
             if len(tmp_node.children[0].children) and tmp_node.children[0].children[0].name=='pointer':
@@ -177,7 +185,7 @@ def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
                  global_node["dataTypes"][struct_name][child.idName]["type"]+='ptr'
             else:
                 global_node["dataTypes"][struct_name][child.idName]["array"]=1
-                global_node["dataTypes"][struct_name][child.idName]["size"]=child.children[1].value
+                global_node["dataTypes"][struct_name][child.idName]["size"]=int(child.children[1].value)
         if(len(child.children)==3):
             global_node["dataTypes"][struct_name][child.idName]["array"]=1
             global_node["dataTypes"][struct_name][child.idName]["size"]=len(child.children[2].array_list)
@@ -202,7 +210,7 @@ def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
         global_node["dataTypes"][struct_name][tmp_node.idName][quality]=1
     if(len(tmp_node.children)==2):
         global_node["dataTypes"][struct_name][tmp_node.idName]["array"]=1
-        global_node["dataTypes"][struct_name][tmp_node.idName]["size"]=tmp_node.children[1].value        
+        global_node["dataTypes"][struct_name][tmp_node.idName]["size"]=int(tmp_node.children[1].value)        
     if(len(tmp_node.children)==3):
             global_node["dataTypes"][struct_name][tmp_node.idName]["array"]=1
             global_node["dataTypes"][struct_name][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)

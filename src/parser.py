@@ -206,8 +206,8 @@ class CParser:
         p[0] = Node(name='postfix_expression')
         p[0].children = p[0].children+[p[1], p[3]]
         tmp_var1 = create_new_var()
-        emit(tmp_var1, p[3].value, '*',
-             data_type_size[global_node["variables"][p[1].idName]["type"]])
+        var_data = get_var_data(p[1].idName, global_stack, global_node)
+        emit(tmp_var1, p[3].value, '*', data_type_size[var_data["type"]])
         tmp_var2 = create_new_var()
         emit(tmp_var2, p[1].idName, '+', tmp_var1)
         p[0].idName = tmp_var2
