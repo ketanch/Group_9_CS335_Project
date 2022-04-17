@@ -139,3 +139,16 @@ def variable_optimize(block):
     return block
 
 #variable_optimize(block)
+
+class MIPSGenerator:
+
+    def __init__(self):
+        pass
+
+    def tac_to_mips(tac_code):
+        op = tac_code[2]
+        if op == 'gotofunc':
+        elif op == 'return':
+        elif op == 'label':
+            return op[0] + ':'
+        elif op == 'goto':

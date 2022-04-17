@@ -69,6 +69,9 @@ class CParser:
                                | CONST_STRING  
        '''
         p[0] = Node(name='primary_expression', value=p[1], idName=p[1])
+        var_data = get_var_data(p[1], global_stack, global_node)
+        if var_data != None:
+            p[0].type = var_data["type"]
         #if (p[0].idName not in global_node["variables"] and p[0].idName not in symbolTable.keys()):
         if check_variable_not_def(p[0].idName, global_stack, global_node):
             pr_error("Identifier %s not defined at line = %d" % (p[0].idName, p.lineno(0)))
@@ -135,7 +138,6 @@ class CParser:
                                | '(' type_name ')' '{' initializer_list ',' '}'
        '''
         p[0] = Node(name='postfix_expression')
-        #
         if(len(p) == 2):
             p[0] = p[1]
             p[0].type = p[1].type
@@ -168,9 +170,14 @@ class CParser:
         p[0].children = p[0].children+[p[1], p[2]]
         tmp_var1 = create_new_var()
         tmp_var2 = create_new_var()
-        emit(tmp_var1, p[1].idName, '', '')
-        emit(tmp_var2, p[1].idName, '-' + str(p[1].type), 1)
-        emit(p[1].idName, tmp_var2, '', '')
+        gvar = get_var_data(p[1].idName, global_stack, global_node)
+        if gvar == None:
+            pr_error("Invalid decrement operation at line = %d" % (p.lineno(1)))
+            return
+        gvar = gvar["global_var"]
+        emit(tmp_var1, gvar, '', '')
+        emit(tmp_var2, gvar, '-' + str(p[1].type), 1)
+        emit(gvar, tmp_var2, '', '')
         p[0].idName = tmp_var1
 
     def p_postfix_expression_3(self, p):
@@ -181,9 +188,14 @@ class CParser:
         p[0].children = p[0].children+[p[1], p[2]]
         tmp_var1 = create_new_var()
         tmp_var2 = create_new_var()
-        emit(tmp_var1, p[1].idName, '', '')
-        emit(tmp_var2, p[1].idName, '+' + str(p[1].type), 1)
-        emit(p[1].idName, tmp_var2, '', '')
+        gvar = get_var_data(p[1].idName, global_stack, global_node)
+        if gvar == None:
+            pr_error("Invalid increment operation at line = %d" % (p.lineno(1)))
+            return
+        gvar = gvar["global_var"]
+        emit(tmp_var1, gvar, '', '')
+        emit(tmp_var2, gvar, '+' + str(p[1].type), 1)
+        emit(gvar, tmp_var2, '', '')
         p[0].idName = tmp_var1
 
     def p_postfix_expression_4(self, p):
@@ -209,7 +221,8 @@ class CParser:
         var_data = get_var_data(p[1].idName, global_stack, global_node)
         emit(tmp_var1, p[3].value, '*', data_type_size[var_data["type"]])
         tmp_var2 = create_new_var()
-        emit(tmp_var2, p[1].idName, '+', tmp_var1)
+        gvar = glo_subs(p[1].idName, global_stack, global_node)
+        emit(tmp_var2, gvar, '+', tmp_var1)
         p[0].idName = tmp_var2
 
     def p_argument_expression_list(self, p):
@@ -234,8 +247,13 @@ class CParser:
         elif((len(p) == 3)):
             p[0].idName = p[2].idName
             tmp_var = create_new_var()
-            emit(tmp_var, p[2].idName, '+' + str(p[2].type), 1)
-            emit(p[2].idName, tmp_var, '', '')
+            gvar = get_var_data(p[2].idName, global_stack, global_node)
+            if gvar == None:
+                pr_error("Invalid increment operation at line = %d" % (p.lineno(2)))
+                return
+            gvar = gvar["global_var"]
+            emit(tmp_var, gvar, '+' + str(p[2].type), 1)
+            emit(gvar, tmp_var, '', '')
             p[0].children = p[0].children+[p[1], p[2]]
 
     def p_unary_expression_2(self, p):
@@ -244,8 +262,13 @@ class CParser:
         p[0] = Node(name='unary_expression')
         p[0].idName = p[2].idName
         tmp_var = create_new_var()
-        emit(tmp_var, p[2].idName, '-' + str(p[2].type), 1)
-        emit(p[2].idName, tmp_var, '', '')
+        gvar = get_var_data(p[2].idName, global_stack, global_node)
+        if gvar == None:
+            pr_error("Invalid decrement operation at line = %d" % (p.lineno(2)))
+            return
+        gvar = gvar["global_var"]
+        emit(tmp_var, gvar, '-' + str(p[2].type), 1)
+        emit(gvar, tmp_var, '', '')
         p[0].children = p[0].children+[p[1], p[2]]
 
     def p_unary_expression_3(self, p):
@@ -258,7 +281,8 @@ class CParser:
             var = 'mem'
         elif p[1].value == '*':
             var = 'deref'
-        emit(tmp_var, p[2].idName, var, '')
+        gvar = glo_subs(p[2].idName, global_stack, global_node)
+        emit(tmp_var, gvar, var, '')
         p[0].children = p[0].children+[p[1], p[2]]
         p[0].idName = tmp_var
 
@@ -292,7 +316,20 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName if p[1].idName!="" else p[1].value, p[2] + str(p[1].type), p[3].idName if p[3].idName!="" else p[3].value)
+
+            gvar1 = None
+            gvar2 = None
+            if p[1].idName != "":
+                gvar1 = glo_subs(p[1].idName, global_stack, global_node)
+            else:
+                gvar1 = p[1].value
+
+            if p[3].idName != "":
+                gvar2 = glo_subs(p[3].idName, global_stack, global_node)
+            else:
+                gvar2 = p[3].value
+
+            emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -305,12 +342,24 @@ class CParser:
         if(len(p) == 2):
             p[0] = p[1]
         else:
-            if p[1].idName == '':
-                p[1].idName = p[1].value
-            if p[3].idName == '':
-                p[3].idName = p[3].value
+
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+
+            gvar1 = None
+            gvar2 = None
+            if p[1].idName != "":
+                gvar1 = glo_subs(p[1].idName, global_stack, global_node)
+            else:
+                gvar1 = p[1].value
+                p[1].idName = p[1].value
+
+            if p[3].idName != "":
+                gvar2 = glo_subs(p[3].idName, global_stack, global_node)
+            else:
+                gvar2 = p[3].value
+                p[3].idName = p[3].value
+
+            emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
             if p[1].type != p[3].type:
@@ -329,7 +378,10 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+            gvar1 = glo_subs(p[1].idName)
+            gvar2 = glo_subs(p[3].idName)
+            
+            emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -347,10 +399,13 @@ class CParser:
             tmp_var = create_new_var()
             tmp = ""
             if(p[3].idName):
-                tmp = p[3].idName
+                tmp = glo_subs(p[3].idName)
             else:
                 tmp = p[3].value
-            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), tmp)
+            
+            gvar1 = glo_subs(p[1].idName)
+
+            emit(tmp_var, gvar1, p[2] + str(p[1].type), tmp)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -364,7 +419,11 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+
+            gvar1 = glo_subs(p[1].idName)
+            gvar2 = glo_subs(p[3].idName)
+
+            emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -377,7 +436,11 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+
+            gvar1 = glo_subs(p[1].idName)
+            gvar2 = glo_subs(p[3].idName)
+
+            emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -391,7 +454,11 @@ class CParser:
             
         else:
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+
+            gvar1 = glo_subs(p[1].idName)
+            gvar2 = glo_subs(p[3].idName)
+                
+            emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -404,7 +471,11 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+
+            gvar1 = glo_subs(p[1].idName)
+            gvar2 = glo_subs(p[3].idName)
+
+            emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -417,7 +488,11 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+
+            gvar1 = glo_subs(p[1].idName)
+            gvar2 = glo_subs(p[3].idName)
+
+            emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -430,7 +505,11 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-            emit(tmp_var, p[1].idName, p[2] + str(p[1].type), p[3].idName)
+
+            gvar1 = glo_subs(p[1].idName)
+            gvar2 = glo_subs(p[3].idName)
+
+            emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -459,7 +538,9 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
             p[0].idName = p[1].idName
             p[0].value = p[3].value
-            emit(p[1].idName, p[3].idName if p[3].idName!='' else p[3].value, "", "")
+            gvar1 = glo_subs(p[1].idName, global_stack, global_node)
+            gvar2 = glo_subs(p[3].idName, global_stack, global_node)
+            emit(gvar1, gvar2 if p[3].idName!='' else p[3].value, "", "")
 
     def p_assignment_operator(self, p):
         '''assignment_operator  : '='
@@ -573,14 +654,17 @@ class CParser:
         p[0].idName = p[1]
         if(len(p) == 2):
             p[0] = p[1]
-            emit(p[1].idName,p[1].value if p[1].value!='' else p[1].idName,"","")
+            gvar1 = glo_subs(p[1].idName, global_stack, global_node)
+            emit(gvar1, p[1].value if p[1].value != '' else gvar1, "", "")
         else:
             p[0].children = p[0].children+[p[1], p[2], p[3]]
             p[0].value = p[3].value
             p[0].idName = p[1].idName
             p[0].type = p[3].type
             p[0].array_list=p[3].array_list
-            emit(p[1].idName,p[3].value if p[3].value!='' else p[3].idName,"","")
+            gvar1 = glo_subs(p[1].idName, global_stack, global_node)
+            gvar2 = glo_subs(p[3].idName, global_stack, global_node)
+            emit(gvar1, p[3].value if p[3].value != '' else gvar2, "", "")
           
     def p_type_specifier_1(self, p):
         '''type_specifier   : VOID
@@ -755,6 +839,7 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[2], p[4]]
         else:
             p[0].children = p[0].children+[p[1], p[3]]
+
     def p_direct_declarator_1(self, p):
         '''direct_declarator    : ID
                                | '(' declarator ')'
@@ -1245,7 +1330,7 @@ class CParser:
             if ret_type.upper() not in ret_type_check[p[2].type.upper()]:
                 pr_error("Return type mismatch at line %d. Function return type is %s whereas returning %s" % (p.lineno(0), ret_type, p[2].type.lower()))
             #label=return_stack.pop()
-            tmp = p[2].idName
+            tmp = glo_subs(p[2].idName, global_stack, global_node)
             if(p[2].idName == ''):
                 tmp = p[2].value
             emit(dest='', src1=tmp, op='return', src2='')
@@ -1353,9 +1438,11 @@ class CParser:
        '''
         p[0] = Node(name='function_definition',type=p[1].type, idName=p[1].idName)
         if(len(p)==4):
-            p[0]=p[1]
-        else:
-            p[0].children += [p[1], p[2]]
+            if(p[2]==';'):
+                p[0]=p[1]
+                
+            else:
+                p[0].children += [p[1], p[2]]
         if(not tac_code[-1][2].startswith('return')):
             emit(dest='', src1='', op='return', src2='')
 
@@ -1426,7 +1513,8 @@ class CParser:
         pprint(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        print(json.dumps(symbolTable,indent=4))
+        #print(json.dumps(symbolTable,indent=4))
+        #print(json.dumps(program_variables,indent=4))
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'

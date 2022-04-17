@@ -1,4 +1,5 @@
-from symbolTab import tac_code
+from symbolTab import tac_code, var_global_ctr, program_variables
+
 def emit(dest, src1, op, src2):
     # if len(tac_code) > 1 and tac_code[-2][2].startswith('post_'):
     #    temp_ent = tac_code.pop()
@@ -6,6 +7,7 @@ def emit(dest, src1, op, src2):
     #    tac_code.append(temp_ent)
     #    return
     tac_code.append([dest, src1, op, src2])
+
 ret_type_check = {
     "INT": ["INT", "LONG", "LONG_LONG"],
     "CHAR": ["CHAR"],
@@ -37,6 +39,13 @@ def get_var_data(var, global_stack, global_node):
         if var in global_stack[i]["variables"]:
             return global_stack[i]["variables"][var]
     return None
+
+#Substitute global id name for variables
+def glo_subs(var, global_stack, global_node):
+    gvar = get_var_data(var, global_stack, global_node)
+    if gvar == None:
+        return var
+    return gvar["global_var"]
     
 def check_variable_not_def(var, global_stack, global_node):
     if var in global_node["variables"]:
@@ -86,6 +95,7 @@ def check_if_const_changed(var,global_node,global_stack):
 
 
 def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
+    global var_global_ctr
     prev_node=tmp_node
     while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
         child=tmp_node.children[1]
@@ -99,8 +109,11 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             "const":0,
             "volatile":0,
             "struct":isStruct,
-            "elements":{}
+            "elements":{},
+            "global_var": "1gvar_" + str(var_global_ctr)
         }
+        program_variables["1gvar_" + str(var_global_ctr)] = global_node["variables"][child.idName]
+        var_global_ctr += 1
         #adding struct elements in var
         if(isStruct):
             add_struct_elements_in_var(global_stack,global_node,global_node["variables"][child.idName])
@@ -140,8 +153,11 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             "const":0,
             "volatile":0,
             "struct":isStruct,
-            "elements":{}
+            "elements":{},
+            "global_var": "1gvar_" + str(var_global_ctr)
         }
+        program_variables["1gvar_" + str(var_global_ctr)] = global_node["variables"][tmp_node.idName]
+        var_global_ctr += 1
         if(isStruct):
             add_struct_elements_in_var(global_stack,global_node,global_node["variables"][tmp_node.idName])
         # emit(tmp_node.idName, tmp_node.value if tmp_node.value!="" else tmp_node.idName, '', '')

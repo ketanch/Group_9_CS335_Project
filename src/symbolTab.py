@@ -198,6 +198,10 @@ global_node=symbolTable
 
 tac_code = []
 
+#This array contains global id for each variable
+program_variables = {}
+var_global_ctr = 0
+
 #Assuming 64 bit architecture
 data_type_size = {
     "int": 4,
