@@ -846,8 +846,8 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[2]]
             p[0].idName = p[2].idName
             p[0].type = 'ptr'
-    def p_func_direct_declarator_1(self, p):
-        '''func_direct_declarator : MAIN
+    def p_func_direct_declarator_init(self, p):
+        '''func_direct_declarator_init : MAIN
                                | ID
                                | '(' declarator ')'
        '''
@@ -858,10 +858,10 @@ class CParser:
         if(len(p) == 4):
             p[0].children = p[0].children+[p[2]]
 
-    def p_func_direct_declarator_2(self, p):
-        '''func_direct_declarator    : func_direct_declarator '(' parameter_type_list ')'
-                               | func_direct_declarator '(' ')'
-                               | func_direct_declarator '(' identifier_list ')'
+    def p_func_direct_declarator(self, p):
+        '''func_direct_declarator    : func_direct_declarator_init '(' parameter_type_list ')'
+                               | func_direct_declarator_init '(' ')'
+                               | func_direct_declarator_init '(' identifier_list ')'
        '''
         p[0] = Node(name='func_direct_declarator', idName=p[1].idName)
         if(len(p) == 4):
