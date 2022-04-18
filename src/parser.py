@@ -686,8 +686,6 @@ class CParser:
                            | LONG
                            | CHAR
                            | SHORT
-                           | SIGNED
-                           | UNSIGNED
                            | BOOL
                            | LONG_LONG
        '''
@@ -821,6 +819,8 @@ class CParser:
     def p_type_qualifier(self, p):
         '''type_qualifier   : CONST
                            | VOLATILE
+                           | UNSIGNED
+                           | SIGNED
        '''
         p[0] = Node(name='type_qualifier', value=p[1])
 
@@ -1546,8 +1546,8 @@ class CParser:
         pprint(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        print(json.dumps(symbolTable,indent=4))
-        #print(json.dumps(program_variables,indent=4))
+        # print(json.dumps(symbolTable,indent=4))
+        # print(json.dumps(program_variables,indent=4))
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'

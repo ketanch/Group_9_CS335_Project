@@ -10,7 +10,6 @@ class CLexer:
         # Data types
         'int': 'INT', 'float': 'FLOAT', 'double': 'DOUBLE', 'char': 'CHAR',
         # Other
-        'short': 'SHORT',
         'signed': 'SIGNED',
         'unsigned': 'UNSIGNED',
         'bool': 'BOOL',
@@ -54,7 +53,7 @@ class CLexer:
         'ID',
         # Constant types
         'CONST_STRING', 'CONST_CHAR', 'CONST_FLOAT', 'CONST_HEX', 'CONST_OCT', 'CONST_BIN', 'CONST_INT',
-        'LONG_LONG', 'LONG',
+        'LONG_LONG', 'LONG', 'SHORT',
         # Comparison Operators
         'COMP_EQUAL', 'COMP_NEQUAL', 'COMP_LTEQ', 'COMP_GTEQ',
 
@@ -133,6 +132,10 @@ class CLexer:
     
     def t_LONG(self, t):
         r'(long[ ]+int)|(long)'
+        return t
+
+    def t_SHORT(self, t):
+        r'(short[ ]+int)|(short)'
         return t
 
     def t_CONST_STRING(self, t):
