@@ -1,4 +1,6 @@
 from symbolTab import tac_code, var_global_ctr, program_variables
+from code_gen import byte_align, get_data_type_size
+from symbolTab import global_node, global_stack
 
 def emit(dest, src1, op, src2):
     # if len(tac_code) > 1 and tac_code[-2][2].startswith('post_'):
@@ -97,7 +99,9 @@ def check_if_const_changed(var,global_node,global_stack):
 def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
     global var_global_ctr
     prev_node=tmp_node
+    ctr = 0
     while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
+        ctr += 1
         child=tmp_node.children[1]
         # emit(child.idName, child.value if child.value!="" else child.idName, '', '')
         global_node["variables"][child.idName]={
@@ -124,7 +128,7 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
         # checking if it is an array
         if(len(child.children)==2):
             if child.children[0].name=='pointer':
-                 global_node["variables"][child.idName]["type"]+='ptr'
+                 global_node["variables"][child.idName]["type"]+='0ptr'
             
             else:
                 global_node["variables"][child.idName]["array"]=1
@@ -132,7 +136,7 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
         if(len(child.children)==3):
             if len(child.children):
                 if len(child.children[0].children) and child.children[0].children[0].name=='pointer':
-                    global_node["variables"][child.idName]["type"]+="ptr"
+                    global_node["variables"][child.idName]["type"]+="0ptr"
                 else:
                     
                     global_node["variables"][child.idName]["array"]=1
@@ -142,8 +146,9 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
         prev_node=child
         tmp_node=tmp_node.children[0]
     if(tmp_node.name=='pointer'):
-        global_node["variables"][prev_node.idName]["type"]+="ptr"
+        global_node["variables"][prev_node.idName]["type"]+="0ptr"
     else:
+        ctr += 1
         global_node["variables"][tmp_node.idName]={
             "type":type,
             "value":tmp_node.value,
@@ -170,14 +175,18 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
     if(len(tmp_node.children)==3):
         if len(tmp_node.children):
             if len(tmp_node.children[0].children) and tmp_node.children[0].children[0].name=='pointer':
-                global_node["variables"][tmp_node.idName]["type"]+="ptr"
+                global_node["variables"][tmp_node.idName]["type"]+="0ptr"
             else:
                 global_node["variables"][tmp_node.idName]["array"]=1
                 global_node["variables"][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)
                 global_node["variables"][tmp_node.idName]["value"]=tmp_node.children[2].array_list
+    for i in range(ctr):
+        print(i)
+        tac_code[-1-i][0] = glo_subs(tac_code[-1-i][0], global_stack, global_node)
     
             
 def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
+    #print(struct_name, type)
     prev_node=tmp_node
     while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
         child=tmp_node.children[1]
@@ -193,12 +202,12 @@ def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
         # checking for const,unsigned,volatile
         for quality in qualifier_list:
             if child.children[0].name=='pointer':
-                 global_node["dataTypes"][struct_name][child.idName]["type"]+='ptr'
+                 global_node["dataTypes"][struct_name][child.idName]["type"]+='0ptr'
             global_node["dataTypes"][struct_name][child.idName][quality]=1
         # checking if it is an array
         if(len(child.children)==2):
             if child.children[0].name=='pointer':
-                 global_node["dataTypes"][struct_name][child.idName]["type"]+='ptr'
+                 global_node["dataTypes"][struct_name][child.idName]["type"]+='0ptr'
             else:
                 global_node["dataTypes"][struct_name][child.idName]["array"]=1
                 global_node["dataTypes"][struct_name][child.idName]["size"]=int(child.children[1].value)
@@ -208,19 +217,44 @@ def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
             global_node["dataTypes"][struct_name][child.idName]["value"]=child.children[2].array_list
         prev_node=child
         tmp_node=tmp_node.children[0]
+
+        offset = global_node["dataTypes"][struct_name]["1size"]
+        var_data = global_node["dataTypes"][struct_name][child.idName]
+        type = var_data["type"]
+        tlen = None
+        if type.endswith("0ptr"):
+            tlen = 8
+        else:
+            tlen = get_data_type_size(type, global_node, global_stack)
+        offset += (tlen - offset) % tlen
+        var_data["offset"] = offset
+        offset += tlen
+        global_node["dataTypes"][struct_name]["1size"] = offset
         
     if(tmp_node.name=='pointer'):
-        global_node["dataTypes"][struct_name][prev_node.idName]["type"]+="ptr"
+        var_data = global_node["dataTypes"][struct_name][prev_node.idName]
+        offset = global_node["dataTypes"][struct_name]["1size"] - get_data_type_size(var_data["type"], global_node, global_stack)
+        offset += (8 - offset) % 8
+        var_data["offset"] = offset
+        offset += 8
+        global_node["dataTypes"][struct_name]["1size"] = offset
+        global_node["dataTypes"][struct_name][prev_node.idName]["type"]+="0ptr"
+
     else:
+        offset = global_node["dataTypes"][struct_name]["1size"]
+        tlen = get_data_type_size(type, global_node, global_stack)
+        offset += (tlen - offset) % tlen
         global_node["dataTypes"][struct_name][tmp_node.idName]={
             "type":type,
             "value":tmp_node.value,
             "array":0,
             "size":0,
-            "offset":0,
+            "offset":offset,
             "const":0,
             "volatile":0,
         }
+        offset += tlen
+        global_node["dataTypes"][struct_name]["1size"] = offset
     # checking for const,unsigned,volatile
     for quality in qualifier_list:
         global_node["dataTypes"][struct_name][tmp_node.idName][quality]=1

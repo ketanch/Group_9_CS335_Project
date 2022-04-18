@@ -1,7 +1,6 @@
 from pprint import pprint
 from cgi import print_form
 from ctypes.wintypes import INT
-from numpy import var
 import ply.yacc as yacc
 from yaml import emit
 from lexer import *
@@ -42,9 +41,6 @@ def create_new_label():
     return out
 
 
-
-
-
 class CParser:
 
     tokens = CLexer.tokens
@@ -72,11 +68,11 @@ class CParser:
         var_data = get_var_data(p[1], global_stack, global_node)
         if var_data != None:
             p[0].type = var_data["type"]
-        #if (p[0].idName not in global_node["variables"] and p[0].idName not in symbolTable.keys()):
-        if check_variable_not_def(p[0].idName, global_stack, global_node):
+
+        if check_variable_not_def(p[0].idName, global_stack, global_node) and not check_variable_func_conflict(p[0].idName, symbolTable):
             pr_error("Identifier %s not defined at line = %d" % (p[0].idName, p.lineno(0)))
-        if check_variable_func_conflict(p[0].idName, symbolTable):
-            pr_error("Function name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
+        #if check_variable_func_conflict(p[0].idName, symbolTable):
+        #    pr_error("Function name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
 
     def p_primary_expression_2(self, p):
         '''primary_expression   : constant
@@ -144,6 +140,10 @@ class CParser:
 
         elif(len(p) == 5):
             # label=create_new_label()
+            if not check_variable_not_def(p[1].idName, global_stack, global_node):
+                pr_error("Variable %s cannot be called as function at line %d" % (p[1].idName, p.lineno(1)))
+            elif not check_variable_func_conflict(p[1].idName, symbolTable):
+                pr_error("Function %s not defined at line %d" % (p[1].idName, p.lineno(1)))
             p[0].children = p[0].children+[p[1], p[3]]
             emit(dest='__'+p[1].idName, src1='', op='gotofunc', src2='')
             # emit(dest=label,src1='',op='label',src2='')
@@ -151,6 +151,10 @@ class CParser:
 
         elif(len(p) == 4):
             # label=create_new_label()
+            if not check_variable_not_def(p[1].idName, global_stack, global_node):
+                pr_error("Variable %s cannot be called as function at line %d" % (p[1].idName, p.lineno(1)))
+            elif not check_variable_func_conflict(p[1].idName, symbolTable):
+                pr_error("Function %s not defined at line %d" % (p[1].idName, p.lineno(1)))
             p[0] = p[1]
             emit(dest='__'+p[1].idName, src1='', op='gotofunc', src2='')
             # emit(dest=label,src1='',op='label',src2='')
@@ -205,10 +209,17 @@ class CParser:
         p[0] = Node(name='postfix_expression')
         p[0].children = p[0].children+[p[1], p[2], p[3]]
         t=get_var_type(p[1].idName,global_stack,global_node)
-        if(p[2]=='.' and t[-3:]=='ptr'):
+        if(p[2]=='.' and t[-4:]=='0ptr'):
             pr_error('%s is a pointer; did you mean to use "->" ? in line number %d' % (p[1].idName, p.lineno(1)))
-        if(p[2]=='->' and t[-3:]!='ptr'):
+        if(p[2]=='->' and t[-4:]!='0ptr'):
             pr_error('%s is not a pointer; did you mean to use "." ? in line number %d' % (p[1].idName, p.lineno(1)))
+        if p[2] == '.':
+            tmp_var = create_new_var()
+            gvar = glo_subs(p[1].idName, global_stack, global_node)
+            offset = program_variables[gvar]["elements"][p[3]]["offset"]
+            emit(tmp_var, gvar, '+', offset)
+            p[0].idName = tmp_var
+            return        
         p[0].idName=p[1].idName+p[2]+p[3]
 
 
@@ -219,7 +230,8 @@ class CParser:
         p[0].children = p[0].children+[p[1], p[3]]
         tmp_var1 = create_new_var()
         var_data = get_var_data(p[1].idName, global_stack, global_node)
-        emit(tmp_var1, p[3].value, '*', data_type_size[var_data["type"]])
+        type_size = get_data_type_size(var_data["type"], global_node, global_stack)
+        emit(tmp_var1, p[3].value, '*', type_size)
         tmp_var2 = create_new_var()
         gvar = glo_subs(p[1].idName, global_stack, global_node)
         emit(tmp_var2, gvar, '+', tmp_var1)
@@ -540,7 +552,7 @@ class CParser:
             p[0].value = p[3].value
             gvar1 = glo_subs(p[1].idName, global_stack, global_node)
             gvar2 = glo_subs(p[3].idName, global_stack, global_node)
-            emit(gvar1, gvar2 if p[3].idName!='' else p[3].value, "", "")
+            emit(gvar1, gvar2 if p[3].idName!='' else p[3].value, "store", "")
 
     def p_assignment_operator(self, p):
         '''assignment_operator  : '='
@@ -664,7 +676,7 @@ class CParser:
             p[0].array_list=p[3].array_list
             gvar1 = glo_subs(p[1].idName, global_stack, global_node)
             gvar2 = glo_subs(p[3].idName, global_stack, global_node)
-            emit(gvar1, p[3].value if p[3].value != '' else gvar2, "", "")
+            emit(gvar1, p[3].value if p[3].value != '' else gvar2, "store", "")
           
     def p_type_specifier_1(self, p):
         '''type_specifier   : VOID
@@ -686,6 +698,7 @@ class CParser:
        '''
         p[0] = Node(name='type_specifier')
         p[0] = p[1]
+
     def p_STRUCTMARKER1(self,p):
         '''STRUCTMARKER1 : '''
         global struct_name
@@ -697,11 +710,32 @@ class CParser:
         else:
             struct_name=create_new_struct_name()
             global_node["dataTypes"][struct_name] = {"1type": p[-1].type}
+        global_node["dataTypes"][struct_name]["1size"] = 0
             
+    def p_STRUCTMARKER2(self,p):
+        '''STRUCTMARKER2 : '''
+        global struct_name
+        print(struct_name)
+        max_len = 0
+        ele_arr = list(global_node["dataTypes"][struct_name].keys())
+        ele_arr.remove("1type")
+        ele_arr.remove("1size")
+        for i in ele_arr:
+            var_data = global_node["dataTypes"][struct_name][i]
+            tlen = None
+            if var_data["type"].endswith("0ptr"):
+                tlen = 8
+            else:
+                tlen = get_data_type_size(var_data["type"], global_node, global_stack)
+            if tlen > max_len:
+                max_len = tlen
+        offset = global_node["dataTypes"][struct_name]["1size"]
+        global_node["dataTypes"][struct_name]["1size"] += (max_len - offset) % max_len
+
 
     def p_struct_or_union_specifier(self, p):
-        '''struct_or_union_specifier    : struct_or_union STRUCTMARKER1 '{' struct_declaration_list '}'
-                                       | struct_or_union ID STRUCTMARKER1 '{' struct_declaration_list '}'
+        '''struct_or_union_specifier    : struct_or_union STRUCTMARKER1 '{' struct_declaration_list '}' STRUCTMARKER2
+                                       | struct_or_union ID STRUCTMARKER1 '{' struct_declaration_list '}' STRUCTMARKER2
                                        | struct_or_union ID
        '''
         p[0] = Node(name='struct_or_union_specifier', type=p[1].type)
@@ -713,7 +747,6 @@ class CParser:
         else:
             p[0].children+=[p[1],p[2]]
             p[0].type=p[1].type+p[2]
-            
 
 
     def p_struct_or_union(self, p):
@@ -1513,7 +1546,7 @@ class CParser:
         pprint(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        #print(json.dumps(symbolTable,indent=4))
+        print(json.dumps(symbolTable,indent=4))
         #print(json.dumps(program_variables,indent=4))
 
     def generate_dot(self):

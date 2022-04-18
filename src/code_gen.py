@@ -10,13 +10,30 @@ data_type_size = {
     "bool": 1
 }
 
-#Finds struct size
-def find_struct_size(var_data):
-    vars = list(var_data.keys())
-    vars.remove("1type")
-    size = 0
-    for i in vars:
-        size += data_type_size[var_data["type"]]
+#returns size of a data type
+def get_data_type_size(type, global_node, global_stack):
+    print(type, end = ' ')
+    type_size = data_type_size.get(type, None)
+    found = 0
+    if type_size == None:
+        temp_types = global_node["dataTypes"]
+        for i in temp_types.keys():
+            if type == temp_types[i]["1type"] + i:
+                print("C")
+                return temp_types[i]["1size"]
+
+        for i in range(len(global_stack)-1, -1, -1):
+            temp_types = global_stack[i]["dataTypes"]
+            for i in temp_types.keys():
+                if type == temp_types[i]["1type"] + i:
+                    type_size = temp_types[i]["1size"]
+                    print("B")
+                    return type_size
+    else:
+        print("A")
+        return type_size
+    print("D")
+    return None
 
 #Byte aligns a variable
 def byte_align(offset, type_len):
@@ -59,7 +76,10 @@ def gen_var_offset(emit_arr, symbolTable):
         lvar_list = order_variables(lvars)
         for var in lvar_list:
             var_data = lvars[var]
-            type_len = data_type_size[var_data["type"]]
+            #if pointer then add corresponding code
+            type_len = temp_data_sizes.get(var_data["type"], None)
+            if type_len == None:
+                type_len = var_data["elements"]["1size"]
             local_offset = byte_align(local_offset, type_len) + type_len * var_data["array"] * var_data["size"]
             var_data["offset"] = local_offset
 
@@ -140,6 +160,10 @@ def variable_optimize(block):
 
 #variable_optimize(block)
 
+register_des = {}
+for i in range(32):
+    register_des[str(i)] = None
+
 class MIPSGenerator:
 
     def __init__(self):
@@ -147,8 +171,13 @@ class MIPSGenerator:
 
     def tac_to_mips(tac_code):
         op = tac_code[2]
-        if op == 'gotofunc':
+        if op == '+':
+            pass
+        elif op == 'gotofunc':
+            pass
         elif op == 'return':
+            pass
         elif op == 'label':
             return op[0] + ':'
         elif op == 'goto':
+            pass
