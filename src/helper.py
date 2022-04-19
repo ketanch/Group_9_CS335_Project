@@ -77,8 +77,12 @@ def check_variable_func_conflict(var, symbolTable):
 def check_variable_redefined(var,global_node):
     if var in global_node["variables"].keys():
         return True
-    if var in global_node["func_parameters"]["arguments"].keys():
-        return True
+    # when global there is no parameter
+    try:
+        if var in global_node["func_parameters"]["arguments"].keys():
+            return True
+    except:
+        _=None
     return False
 
 def check_struct_redefined(var,global_node):
@@ -288,3 +292,34 @@ def add_struct_elements_in_var(global_stack,global_node,node):
         if name in global_stack[i]["dataTypes"]:
             struct_node=global_stack[i]["dataTypes"][name]  
     node["elements"]=struct_node  
+    
+def check_no_of_arguments_mismatch(n, node):
+    counter=1
+    while not isinstance(node,str) and len(node.children) != 0 :
+        node=node.children[0]
+        counter+=1
+    if counter == n:
+        return False, counter
+    return True, counter
+
+def check_arguments_type_mismatch(func_entry, node):
+    counter=0
+    argument_list_name=list(func_entry["func_parameters"]["arguments"])
+    n=len(argument_list_name)
+    while not isinstance(node,str) and len(node.children) != 0 :
+        type_given=get_var_type(node.children[1].idName,global_stack=global_stack,global_node=global_node)
+        if type_given=="Not Defined":
+            type_given=node.children[n-1-counter].type
+        if func_entry["func_parameters"]["arguments"][argument_list_name[n-1-counter]] != type_given:
+            return True
+        node=node.children[0]
+        counter+=1
+    type_given=get_var_type(node.idName,global_stack=global_stack,global_node=global_node)
+    if type_given=="Not Defined":
+        type_given=node.type
+    if func_entry["func_parameters"]["arguments"][argument_list_name[n-1-counter]] != type_given:
+        return True
+    return False
+    # if counter == n:
+    #     return False, counter
+    # return True, counter

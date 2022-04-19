@@ -90,42 +90,42 @@ class CParser:
     def p_constant_1(self, p):
         '''constant : CONST_INT
        '''
-        p[0] = Node(name='constant', value=p[1], type='INT')
+        p[0] = Node(name='constant', value=p[1], type='int')
 
     def p_constant_2(self, p):
         '''constant : CONST_CHAR
        '''
-        p[0] = Node(name='constant', value=p[1], type='CHAR')
+        p[0] = Node(name='constant', value=p[1], type='char')
 
     def p_constant_3(self, p):
         '''constant : CONST_FLOAT
        '''
-        p[0] = Node(name='constant', value=p[1], type='FLOAT')
+        p[0] = Node(name='constant', value=p[1], type='float')
 
     def p_constant_4(self, p):
         '''constant : CONST_HEX
        '''
-        p[0] = Node(name='constant', value=int(p[1], 16), type='INT')
+        p[0] = Node(name='constant', value=int(p[1], 16), type='int')
 
     def p_constant_5(self, p):
         '''constant : CONST_OCT
        '''
-        p[0] = Node(name='constant', value=int(p[1], 8), type='INT')
+        p[0] = Node(name='constant', value=int(p[1], 8), type='int')
 
     def p_constant_6(self, p):
         '''constant : CONST_BIN
        '''
-        p[0] = Node(name='constant', value=int(p[1], 2), type='INT')
+        p[0] = Node(name='constant', value=int(p[1], 2), type='int')
 
     def p_constant_7(self, p):
         '''constant : TRUE
        '''
-        p[0] = Node(name='constant', value=p[1], type='BOOL')
+        p[0] = Node(name='constant', value=p[1], type='bool')
 
     def p_constant_8(self, p):
         '''constant : FALSE  
        '''
-        p[0] = Node(name='constant', value=p[1], type='BOOL')
+        p[0] = Node(name='constant', value=p[1], type='bool')
 
     def p_postfix_expression_1(self, p):
         '''postfix_expression   : primary_expression
@@ -148,6 +148,13 @@ class CParser:
             emit(dest='__'+p[1].idName, src1='', op='gotofunc', src2='')
             # emit(dest=label,src1='',op='label',src2='')
             # return_stack.append(label)
+            if(p[1] != '('):
+                
+                cond,n=check_no_of_arguments_mismatch(symbolTable[p[1].idName]["func_parameters"]["number_args"],p[3])
+                if cond :
+                    pr_error('Expected no of arguments are %d but got %d in function %s at line no %d'%(symbolTable[p[1].idName]["func_parameters"]["number_args"],n,p[1].idName, p.lineno(1)))
+                if not cond and check_arguments_type_mismatch(symbolTable[p[1].idName],p[3]):
+                    pr_error("Type mismatch in function : %s at line : %d"%(p[1].idName, p.lineno(1)))
 
         elif(len(p) == 4):
             # label=create_new_label()
@@ -243,12 +250,13 @@ class CParser:
         '''argument_expression_list : assignment_expression
                                    | argument_expression_list ',' assignment_expression
        '''
-        p[0] = Node(name='argument_expression')
+        p[0] = Node(name='argument_expression_list')
         if(len(p) == 2):
             p[0] = p[1]
             
         else:
             p[0].children = p[0].children+[p[1], p[3]]
+            
 
     def p_unary_expression_1(self, p):
         '''unary_expression : postfix_expression
