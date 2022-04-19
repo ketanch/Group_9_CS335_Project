@@ -1,8 +1,6 @@
 from pprint import pprint
-from cgi import print_form
-from ctypes.wintypes import INT
+from code_gen import gen_var_offset, generate_final_code, variable_optimize
 import ply.yacc as yacc
-from yaml import emit
 from lexer import *
 import sys
 import pydot
@@ -64,7 +62,7 @@ class CParser:
         '''primary_expression   : ID
                                | CONST_STRING  
        '''
-        p[0] = p[1]
+        p[0] = Node(name='primary_expression', value=p[1], idName=p[1])
         var_data = get_var_data(p[1], global_stack, global_node)
         if var_data != None:
             p[0].type = var_data["type"]
@@ -371,7 +369,7 @@ class CParser:
             if p[3].idName != "":
                 gvar2 = glo_subs(p[3].idName, global_stack, global_node)
             else:
-                gvar2 = p[3].value
+                gvar2 = str(p[3].value)
                 p[3].idName = p[3].value
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
@@ -1479,7 +1477,7 @@ class CParser:
                 
             else:
                 p[0].children += [p[1], p[2]]
-        if(not tac_code[-1][2].startswith('return')):
+        if(not tac_code[-1].op.startswith('return')):
             emit(dest='', src1='', op='return', src2='')
 
 
@@ -1546,11 +1544,15 @@ class CParser:
             print("'main' function not present.")
             exit(1)
         print("Parsing completed successfully")
-        pprint(tac_code)
+        for i in tac_code:
+            print(i.print())
+        gen_var_offset(symbolTable)
+        variable_optimize(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        print(json.dumps(symbolTable,indent=4))
+        #print(json.dumps(symbolTable,indent=4))
         # print(json.dumps(program_variables,indent=4))
+        generate_final_code(tac_code)
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'

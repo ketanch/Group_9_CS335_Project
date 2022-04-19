@@ -1,6 +1,7 @@
 from symbolTab import tac_code, var_global_ctr, program_variables
 from code_gen import byte_align, get_data_type_size
 from symbolTab import global_node, global_stack
+from code_gen import TACInstruction
 
 def emit(dest, src1, op, src2):
     # if len(tac_code) > 1 and tac_code[-2][2].startswith('post_'):
@@ -8,7 +9,8 @@ def emit(dest, src1, op, src2):
     #    tac_code.append([dest, src1, op, src2])
     #    tac_code.append(temp_ent)
     #    return
-    tac_code.append([dest, src1, op, src2])
+    ins = TACInstruction(src1, src2, dest, op)
+    tac_code.append(ins)
 
 ret_type_check = {
     "INT": ["INT", "LONG", "LONG_LONG"],
@@ -183,9 +185,8 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
                 global_node["variables"][tmp_node.idName]["array"]=1
                 global_node["variables"][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)
                 global_node["variables"][tmp_node.idName]["value"]=tmp_node.children[2].array_list
-    # for i in range(ctr):
-    #     print(i)
-    #     tac_code[-1-i][0] = glo_subs(tac_code[-1-i][0], global_stack, global_node)
+    for i in range(ctr):
+        tac_code[-1-i].dest = glo_subs(tac_code[-1-i].dest, global_stack, global_node)
     
             
 def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
