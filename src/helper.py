@@ -1,4 +1,4 @@
-from symbolTab import tac_code, var_global_ctr, program_variables
+from symbolTab import tac_code, var_global_ctr, program_variables, global_tac_code
 from code_gen import byte_align, get_data_type_size
 from symbolTab import global_node, global_stack
 from code_gen import TACInstruction
@@ -10,7 +10,10 @@ def emit(dest, src1, op, src2):
     #    tac_code.append(temp_ent)
     #    return
     ins = TACInstruction(src1, src2, dest, op)
-    tac_code.append(ins)
+    if(len(global_stack)==0 and op!='return'):
+        global_tac_code.append(ins)
+    else:
+        tac_code.append(ins)
 
 ret_type_check = {
     "INT": ["INT", "LONG", "LONG_LONG"],
@@ -114,6 +117,8 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
         ctr += 1
         child=tmp_node.children[1]
         # emit(child.idName, child.value if child.value!="" else child.idName, '', '')
+        if(type!=child.type):
+            pr_error("Type mismatch")
         global_node["variables"][child.idName]={
             "type":type,
             "value":child.value,
@@ -139,7 +144,6 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
         if(len(child.children)==2):
             if child.children[0].name=='pointer':
                  global_node["variables"][child.idName]["type"]+='0ptr'
-            
             else:
                 global_node["variables"][child.idName]["array"]=1
                 global_node["variables"][child.idName]["size"]=int(child.children[1].value)
@@ -148,6 +152,7 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
                 if len(child.children[0].children) and child.children[0].children[0].name=='pointer':
                     global_node["variables"][child.idName]["type"]+="0ptr"
                 elif(child.children[2].name!="constant"):
+                    
                     global_node["variables"][child.idName]["array"]=1
                     global_node["variables"][child.idName]["size"]=len(child.children[2].array_list)
                     global_node["variables"][child.idName]["value"]=child.children[2].array_list
@@ -179,19 +184,25 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
     for quality in qualifier_list:
         global_node["variables"][tmp_node.idName][quality]=1
     if(len(tmp_node.children)==2):
+        
         global_node["variables"][tmp_node.idName]["array"]=1
         global_node["variables"][tmp_node.idName]["size"]=int(tmp_node.children[1].value)        
     if(len(tmp_node.children)==3):
         if len(tmp_node.children):
             if len(tmp_node.children[0].children) and tmp_node.children[0].children[0].name=='pointer':
                 global_node["variables"][tmp_node.idName]["type"]+="0ptr"
-            else:
+            elif(tmp_node.children[2].name!='constant'):
                 global_node["variables"][tmp_node.idName]["array"]=1
                 global_node["variables"][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)
                 global_node["variables"][tmp_node.idName]["value"]=tmp_node.children[2].array_list
-    for i in range(ctr):
-        tac_code[-1-i].dest = glo_subs(tac_code[-1-i].dest, global_stack, global_node)
-    
+    if len(global_stack):
+        for i in range(ctr):
+            tac_code[-1-i].dest = glo_subs(tac_code[-1-i].dest, global_stack, global_node)
+    else:
+        for i in range(ctr):
+            global_tac_code[-1-i].dest = glo_subs(global_tac_code[-1-i].dest, global_stack, global_node)
+    if(type!=tmp_node.type and not global_node["variables"][tmp_node.idName]["array"]):
+        pr_error("Type mismatch")
             
 def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
     #print(struct_name, type)
@@ -323,3 +334,11 @@ def check_arguments_type_mismatch(func_entry, node):
     # if counter == n:
     #     return False, counter
     # return True, counter
+    
+def check_data_type_not_def(type, global_stack, global_node):
+    if type in global_node["dataTypes"]:
+        return False
+    for i in range(len(global_stack)-1, -1, -1):
+        if type in global_stack[i]["dataTypes"]:
+            return False
+    return True

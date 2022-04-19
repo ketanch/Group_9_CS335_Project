@@ -197,6 +197,7 @@ global_stack=[]
 global_node=symbolTable
 
 tac_code = []
+global_tac_code=[]
 
 #This array contains global id for each variable
 program_variables = {}

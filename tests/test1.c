@@ -1,12 +1,7 @@
-int func(int a,int b){
-    a=43;
-}
-    float f;
 
 int main() {
-    int a;
-    int n = 4;
-    int g = 9;
-    a = (n+g) * (n*g);
-    func(f,2);
+    // int b='c',a='1';
+    int p[3];
+    int q[3]={1,2,3,4};
+    int r[]={1,2,3};
 }

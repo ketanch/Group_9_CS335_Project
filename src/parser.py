@@ -626,10 +626,16 @@ class CParser:
             if( not p[0].type.startswith("struct") and not p[0].type.startswith("union")):
                 if check_variable_redefined(p[0].idName,global_node):
                     pr_error("Variable redefined at line = %d" % (p.lineno(1)))
+                # if check_data_type_not_def(p[0])
                 # adding variables to symbol table
                 add_var(tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=0,global_stack=global_stack)
             else:
                 add_var(tmp_node=p[2],type=p[0].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=1,global_stack=global_stack)
+                struct_name=p[0].type[6:]
+                if(struct_name[-4:]=='0ptr'):
+                    struct_name=struct_name[:-4]
+                if check_data_type_not_def(struct_name,global_stack,global_node):
+                    pr_error("Type : %s not defined at line no. %d"%(struct_name,p.lineno(1)))
 
     
     def p_declaration_specifiers_1(self, p):
@@ -1472,7 +1478,7 @@ class CParser:
         p[0].children = p[0].children+[p[1], p[2]]
         global_stack.append(global_node)
         global_node = global_node[p[0].idName]
-        emit(dest='__'+p[2].idName, src1='', op='label', src2='')
+        emit(dest='__'+p[2].idName, src1='', op='func_label', src2='')
 
     def p_function_definition(self, p):
         '''function_definition  : function_definition_init ';'  MARKER2
@@ -1554,12 +1560,15 @@ class CParser:
         print("Parsing completed successfully")
         for i in tac_code:
             print(i.print())
-        gen_var_offset(symbolTable)
+        print("GlobalTAC code:")
+        for i in global_tac_code:
+            print(i.print())
+        #gen_var_offset(symbolTable)
         variable_optimize(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        #print(json.dumps(symbolTable,indent=4))
-        # print(json.dumps(program_variables,indent=4))
+        # print(json.dumps(symbolTable,indent=4))
+        print(json.dumps(program_variables,indent=4))
         generate_final_code(tac_code)
 
     def generate_dot(self):
