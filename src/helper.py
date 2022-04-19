@@ -55,6 +55,8 @@ def check_variable_not_def(var, global_stack, global_node):
     for i in range(len(global_stack)-1, -1, -1):
         if var in global_stack[i]["variables"]:
             return False
+    if var in global_node["func_parameters"]["arguments"].keys():
+        return False
     return True
 
 def get_var_type(var, global_stack, global_node):
@@ -72,6 +74,8 @@ def check_variable_func_conflict(var, symbolTable):
 
 def check_variable_redefined(var,global_node):
     if var in global_node["variables"].keys():
+        return True
+    if var in global_node["func_parameters"]["arguments"].keys():
         return True
     return False
 
@@ -137,8 +141,7 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             if len(child.children):
                 if len(child.children[0].children) and child.children[0].children[0].name=='pointer':
                     global_node["variables"][child.idName]["type"]+="0ptr"
-                else:
-                    
+                elif(child.children[2].name!="constant"):
                     global_node["variables"][child.idName]["array"]=1
                     global_node["variables"][child.idName]["size"]=len(child.children[2].array_list)
                     global_node["variables"][child.idName]["value"]=child.children[2].array_list
@@ -180,9 +183,9 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
                 global_node["variables"][tmp_node.idName]["array"]=1
                 global_node["variables"][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)
                 global_node["variables"][tmp_node.idName]["value"]=tmp_node.children[2].array_list
-    for i in range(ctr):
-        print(i)
-        tac_code[-1-i][0] = glo_subs(tac_code[-1-i][0], global_stack, global_node)
+    # for i in range(ctr):
+    #     print(i)
+    #     tac_code[-1-i][0] = glo_subs(tac_code[-1-i][0], global_stack, global_node)
     
             
 def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):

@@ -64,13 +64,13 @@ class CParser:
         '''primary_expression   : ID
                                | CONST_STRING  
        '''
-        p[0] = Node(name='primary_expression', value=p[1], idName=p[1])
+        p[0] = p[1]
         var_data = get_var_data(p[1], global_stack, global_node)
         if var_data != None:
             p[0].type = var_data["type"]
 
-        if check_variable_not_def(p[0].idName, global_stack, global_node) and not check_variable_func_conflict(p[0].idName, symbolTable):
-            pr_error("Identifier %s not defined at line = %d" % (p[0].idName, p.lineno(0)))
+        if check_variable_not_def(p[0] if isinstance(p[0],str) else p[0].idName, global_stack, global_node) and not check_variable_func_conflict(p[0] if isinstance(p[0],str) else p[0].idName, symbolTable):
+            pr_error("Identifier %s not defined at line = %d" % (p[0] if isinstance(p[0],str) else p[0].idName, p.lineno(0)))
         #if check_variable_func_conflict(p[0].idName, symbolTable):
         #    pr_error("Function name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
 
@@ -83,7 +83,10 @@ class CParser:
             p[0] = p[1]
             p[0].type = p[1].type
         else:
-            p[0].children = p[0].children+[p[2]]
+            p[0].type=p[2].type
+            p[0].value=p[2].value
+            p[0].idName=p[2].idName
+            p[0].children=[p[2]]
         # to look again FUNC_NAME in CONST_String
 
     def p_constant_1(self, p):
@@ -136,7 +139,6 @@ class CParser:
         p[0] = Node(name='postfix_expression')
         if(len(p) == 2):
             p[0] = p[1]
-            p[0].type = p[1].type
 
         elif(len(p) == 5):
             # label=create_new_label()
@@ -151,12 +153,14 @@ class CParser:
 
         elif(len(p) == 4):
             # label=create_new_label()
-            if not check_variable_not_def(p[1].idName, global_stack, global_node):
+            if((symbolTable[p[1] if isinstance(p[1],str) else p[1].idName]["func_parameters"]["number_args"])):
+                pr_error("Expected %d arguments for function : %s at line number : %d" % ((symbolTable[p[1] if isinstance(p[1],str) else p[1].idName]["func_parameters"]["number_args"]),p[1] if isinstance(p[1],str) else p[1].idName,p.lineno(1)))
+            if not check_variable_not_def(p[1] if isinstance(p[1],str) else p[1].idName , global_stack, global_node):
                 pr_error("Variable %s cannot be called as function at line %d" % (p[1].idName, p.lineno(1)))
-            elif not check_variable_func_conflict(p[1].idName, symbolTable):
+            elif not check_variable_func_conflict(p[1] if isinstance(p[1],str) else p[1].idName, symbolTable):
                 pr_error("Function %s not defined at line %d" % (p[1].idName, p.lineno(1)))
             p[0] = p[1]
-            emit(dest='__'+p[1].idName, src1='', op='gotofunc', src2='')
+            emit(dest='__'+p[1] if isinstance(p[1],str) else '__'+p[1].idName, src1='', op='gotofunc', src2='')
             # emit(dest=label,src1='',op='label',src2='')
             # return_stack.append(label)
 
@@ -255,7 +259,6 @@ class CParser:
         p[0] = Node(name='unary_expression')
         if(len(p) == 2):
             p[0] = p[1]
-            p[0].type = p[1].type
         elif((len(p) == 3)):
             p[0].idName = p[2].idName
             tmp_var = create_new_var()
@@ -411,11 +414,11 @@ class CParser:
             tmp_var = create_new_var()
             tmp = ""
             if(p[3].idName):
-                tmp = glo_subs(p[3].idName)
+                tmp = glo_subs(p[3].idName,global_stack,global_node)
             else:
                 tmp = p[3].value
             
-            gvar1 = glo_subs(p[1].idName)
+            gvar1 = glo_subs(p[1].idName,global_stack,global_node)
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), tmp)
             p[0].idName = tmp_var
@@ -545,12 +548,12 @@ class CParser:
             
         else:
             
-            if check_if_const_changed(p[1].idName, global_node ,global_stack):
+            if check_if_const_changed(p[1] if isinstance(p[1],str) else p[1].idName, global_node ,global_stack):
                 pr_error("Tried to change constant %s at line = %d" % (p[1].idName, p.lineno(0)))
             p[0].children = p[0].children+[p[1], p[2], p[3]]
-            p[0].idName = p[1].idName
+            p[0].idName = p[1] if isinstance(p[1],str) else p[1].idName
             p[0].value = p[3].value
-            gvar1 = glo_subs(p[1].idName, global_stack, global_node)
+            gvar1 = glo_subs(p[1] if isinstance(p[1],str) else p[1].idName, global_stack, global_node)
             gvar2 = glo_subs(p[3].idName, global_stack, global_node)
             emit(gvar1, gvar2 if p[3].idName!='' else p[3].value, "store", "")
 
@@ -958,7 +961,7 @@ class CParser:
         elif(len(p) == 3):
             p[0].children = p[0].children+[p[1], p[2]]
             p[0].idName = p[2].idName
-
+        
     def p_identifier_list(self, p):
         '''identifier_list  : ID
                            | identifier_list ',' ID
@@ -1359,9 +1362,9 @@ class CParser:
                 emit(dest=continue_label_stack[-1], src1='', op='goto', src2='')
         elif len(p) == 4:
             p[0].children = p[0].children+[p[1], p[2]]
-            ret_type = global_node["func_parameters"]["return_type"].lower()
-            if ret_type.upper() not in ret_type_check[p[2].type.upper()]:
-                pr_error("Return type mismatch at line %d. Function return type is %s whereas returning %s" % (p.lineno(0), ret_type, p[2].type.lower()))
+            # ret_type = global_node["func_parameters"]["return_type"].lower()
+            # if ret_type.upper() not in ret_type_check[p[2].type.upper()]:
+                # pr_error("Return type mismatch at line %d. Function return type is %s whereas returning %s" % (p.lineno(0), ret_type, p[2].type.lower()))
             #label=return_stack.pop()
             tmp = glo_subs(p[2].idName, global_stack, global_node)
             if(p[2].idName == ''):
@@ -1546,7 +1549,7 @@ class CParser:
         pprint(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        # print(json.dumps(symbolTable,indent=4))
+        print(json.dumps(symbolTable,indent=4))
         # print(json.dumps(program_variables,indent=4))
 
     def generate_dot(self):
