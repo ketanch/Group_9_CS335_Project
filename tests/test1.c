@@ -1,8 +1,14 @@
-int main() {
-    struct point{
-        int x;
+int main()
+{
+    long long int e = 0;
+    struct point
+    {
+       int x, x, x;
+       int x;
     };
     struct point z;
-    int a =  2;
-    // int b = c[3.3] * 3;
+    int x,x,x,x;
+    int point;
+    // int x;
+    // z.z = 23243232323232311111111111111111111111111111111111111111111111111111111111;
 }

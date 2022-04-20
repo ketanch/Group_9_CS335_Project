@@ -236,8 +236,10 @@ class CParser:
                 offset = program_variables[gvar]["elements"][p[3]]["offset"]
             emit(tmp_var, gvar, '+', str(offset))
             p[0].idName = tmp_var
-            return        
+        type_element=get_var_type_struct_element(p[1].idName,p[3],global_stack,global_node)
         p[0].idName=p[1].idName+p[2]+p[3]
+        p[0].type=type_element
+        
 
 
     def p_postfix_expression_5(self, p):
@@ -281,6 +283,8 @@ class CParser:
                 pr_error("Invalid increment operation at line = %d" % (p.lineno(2)))
                 return
             gvar = gvar["global_var"]
+            if(check_is_struct(p[2].idName,global_node,global_stack) ):
+                pr_error("%s on struct is not allowed"%(p[1]))
             if(check_is_array(p[2].idName,global_node,global_stack) ):
                 pr_error("%s on array is not allowed"%(p[1]))
             emit(tmp_var, gvar, '+' + str(p[2].type), '1')
@@ -299,6 +303,8 @@ class CParser:
             pr_error("Invalid decrement operation at line = %d" % (p.lineno(2)))
             return
         gvar = gvar["global_var"]
+        if(check_is_struct(p[2].idName,global_node,global_stack) ):
+                pr_error("%s on struct is not allowed"%(p[1]))
         if(check_is_array(p[2].idName,global_node,global_stack) ):
                 pr_error("%s on array is not allowed"%(p[1]))
         emit(tmp_var, gvar, '-' + str(p[2].type), '1')
@@ -316,6 +322,8 @@ class CParser:
             var = 'mem'
         elif p[1].value == '*':
             var = 'deref'
+        if(check_is_struct(p[2].idName,global_node,global_stack) ):
+                pr_error("%s on struct is not allowed"%(p[1]))
         if(check_is_array(p[2].idName,global_node,global_stack) ):
                 pr_error("%s on array is not allowed"%(p[1] if isinstance(p[1],str) else p[1].idName))
         gvar = glo_subs(p[2].idName, global_stack, global_node)
@@ -353,8 +361,13 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
+            if(check_type_mismatch(p[1].type,p[3].type)):
+                pr_error("Type mismatch in line %d"%(p.lineno(1)))
+            if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
+                pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
+            
             gvar1 = None
             gvar2 = None
             if p[1].idName != "":
@@ -381,10 +394,15 @@ class CParser:
         if(len(p) == 2):
             p[0] = p[1]
         else:
-
             tmp_var = create_new_var()
+            if(check_type_mismatch(p[1].type,p[3].type)):
+                pr_error("Type mismatch in line %d"%(p.lineno(1)))
+                
+            if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
+                pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
+            
             gvar1 = None
             gvar2 = None
             if p[1].idName != "":
@@ -421,6 +439,13 @@ class CParser:
             tmp_var = create_new_var()
             gvar1 = glo_subs(p[1].idName)
             gvar2 = glo_subs(p[3].idName)
+            if(p[3].type!='int'):
+                pr_error("Only integer allowed in shift operations at line no. %d"%(p.lineno(1)))
+            if(p[1].type!='int'):
+                pr_error("Only integer allowed in shift operations at line no. %d"%(p.lineno(1)))
+            
+            if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
+                pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
@@ -446,7 +471,12 @@ class CParser:
             else:
                 tmp = p[3].value
             
+            if(check_type_mismatch(p[1].type,p[3].type)):
+                pr_error("Type mismatch in line %d"%(p.lineno(1)))
+            
             gvar1 = glo_subs(p[1].idName,global_stack,global_node)
+            if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
+                pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
             emit(tmp_var, gvar1, p[2] + str(p[1].type), tmp)
@@ -467,6 +497,10 @@ class CParser:
 
             gvar1 = glo_subs(p[1].idName)
             gvar2 = glo_subs(p[3].idName)
+            if(check_type_mismatch(p[1].type,p[3].type)):
+                pr_error("Type mismatch in line %d"%(p.lineno(1)))
+            if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
+                pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
@@ -483,6 +517,10 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
+            if(check_type_mismatch(p[1].type,p[3].type)):
+                pr_error("Type mismatch in line %d"%(p.lineno(1)))
+            if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
+                pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
             gvar1 = glo_subs(p[1].idName)
@@ -506,6 +544,10 @@ class CParser:
 
             gvar1 = glo_subs(p[1].idName)
             gvar2 = glo_subs(p[3].idName)
+            if(check_type_mismatch(p[1].type,p[3].type)):
+                pr_error("Type mismatch in line %d"%(p.lineno(1)))
+            if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
+                pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))  
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
@@ -525,6 +567,10 @@ class CParser:
 
             gvar1 = glo_subs(p[1].idName)
             gvar2 = glo_subs(p[3].idName)
+            if(check_type_mismatch(p[1].type,p[3].type)):
+                pr_error("Type mismatch in line %d"%(p.lineno(1)))
+            if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
+                pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
@@ -541,6 +587,10 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
+            if(check_type_mismatch(p[1].type,p[3].type)):
+                pr_error("Type mismatch in line %d"%(p.lineno(1)))
+            if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
+                pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
             gvar1 = glo_subs(p[1].idName)
@@ -560,6 +610,10 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
+            if(check_type_mismatch(p[1].type,p[3].type)):
+                pr_error("Type mismatch in line %d"%(p.lineno(1)))
+            if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
+                pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
             gvar1 = glo_subs(p[1].idName)
@@ -589,7 +643,8 @@ class CParser:
             p[0] = p[1]
             
         else:
-            
+            if check_type_mismatch(p[1].type,p[3].type):
+                pr_error("Type mismatch at line no. %d"%(p.lineno(1)))
             if check_if_const_changed(p[1] if isinstance(p[1],str) else p[1].idName, global_node ,global_stack):
                 pr_error("Tried to change constant %s at line = %d" % (p[1].idName, p.lineno(0)))
             p[0].children = p[0].children+[p[1], p[2], p[3]]
@@ -653,15 +708,17 @@ class CParser:
         if(len(p) == 3):
             p[0] = p[1]
         else:
-            if check_variable_func_conflict(p[2].idName, symbolTable):
-                pr_error("Function name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
+            # if check_variable_func_conflict(p[2].idName, symbolTable):
+            #     pr_error("Function name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
+            # if check_variable_dataType_conflict(p[2].idName, global_node,global_stack):
+                # pr_error("Struct/Union name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
             p[0].children = p[0].children+[p[1], p[2]]
             p[0].value = p[2].value
             p[0].idName = p[2].idName
         
             if( not p[0].type.startswith("struct") and not p[0].type.startswith("union")):
-                if check_variable_redefined(p[0].idName,global_node):
-                    pr_error("Variable redefined at line = %d" % (p.lineno(1)))
+                # if check_variable_redefined(p[0].idName,global_node):
+                #     pr_error("Variable redefined at line = %d" % (p.lineno(1)))
                 # if check_data_type_not_def(p[0])
                 # adding variables to symbol table
                 add_var(p,tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=0,global_stack=global_stack)
@@ -725,9 +782,11 @@ class CParser:
             p[0].idName = p[1].idName
             p[0].type = p[3].type
             p[0].array_list=p[3].array_list
-            gvar1 = glo_subs(p[1].idName, global_stack, global_node)
-            gvar2 = glo_subs(p[3].idName, global_stack, global_node)
-            emit(gvar1, p[3].value if p[3].value != '' else gvar2, "store", "")
+            gvar1 = glo_subs(p[1].idName if p[1].idName!="" else p[1].value, global_stack, global_node)
+            gvar2 = glo_subs(p[3].idName if p[1].idName!="" else p[1].value, global_stack, global_node)
+            # if(check_type_mismatch(p[1].type,p[3].type)):
+            #     pr_error("Type mismatch in line %d"%(p.lineno(1)))
+            emit(gvar1,gvar2, "store", "")
           
     def p_type_specifier_1(self, p):
         '''type_specifier   : VOID
@@ -824,9 +883,9 @@ class CParser:
         else:
             p[0].children = p[0].children+[p[1], p[2]]
             p[0].idName = p[2].idName
-            if check_variable_redefined_struct(p[0].idName,global_node["dataTypes"][struct_name]):
-                pr_error("Struct element redefined at line = %d" % (p.lineno(1)))
-            add_struct_element(struct_name= struct_name,tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node)
+            # if check_variable_redefined_struct(p[0].idName,global_node["dataTypes"][struct_name]):
+            #     pr_error("Struct element redefined at line = %d" % (p.lineno(1)))
+            add_struct_element(p,struct_name= struct_name,tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node)
             
             
 
