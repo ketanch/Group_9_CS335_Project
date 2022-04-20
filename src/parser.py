@@ -1517,7 +1517,7 @@ class CParser:
         p[0].children = p[0].children+[p[1], p[2]]
         global_stack.append(global_node)
         global_node = global_node[p[0].idName]
-        emit(dest='__'+p[2].idName, src1='', op='func_label', src2='')
+        emit(dest=p[2].idName, src1='', op='func_label', src2='')
 
     def p_function_definition(self, p):
         '''function_definition  : function_definition_init ';'  MARKER2

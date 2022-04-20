@@ -360,6 +360,14 @@ def check_is_array(var,global_node,global_stack):
             return global_node["variables"][var]["array"]
     return False
 
+def check_is_struct(var,global_node,global_stack):
+    if var in global_node["variables"]:
+        return global_node["variables"][var]["struct"]
+    for i in range(len(global_stack)-1, -1, -1):
+        if var in global_stack[i]["variables"]:
+            return global_node["variables"][var]["struct"]
+    return False
+
 def check_type_mismatch(type1,type2):
     if type1!=type2:
         return True
