@@ -1,7 +1,6 @@
-
 int main() {
-    // int b='c',a='1';
-    int p[3];
-    int q[3]={1,2,3,4};
-    int r[]={1,2,3};
+    int a = 5;
+    int b = 5;
+    int c;
+    // c = a*b + b + b*4 +7;
 }

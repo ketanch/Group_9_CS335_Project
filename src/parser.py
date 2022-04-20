@@ -190,6 +190,7 @@ class CParser:
         gvar = gvar["global_var"]
         emit(tmp_var1, gvar, '', '')
         emit(tmp_var2, gvar, '-' + str(p[1].type), 1)
+        p[0].type=p[1].type
         emit(gvar, tmp_var2, '', '')
         p[0].idName = tmp_var1
 
@@ -208,6 +209,7 @@ class CParser:
         gvar = gvar["global_var"]
         emit(tmp_var1, gvar, '', '')
         emit(tmp_var2, gvar, '+' + str(p[1].type), 1)
+        p[0].type=p[1].type
         emit(gvar, tmp_var2, '', '')
         p[0].idName = tmp_var1
 
@@ -274,6 +276,7 @@ class CParser:
                 return
             gvar = gvar["global_var"]
             emit(tmp_var, gvar, '+' + str(p[2].type), 1)
+            p[0].type=p[2].type
             emit(gvar, tmp_var, '', '')
             p[0].children = p[0].children+[p[1], p[2]]
 
@@ -289,6 +292,7 @@ class CParser:
             return
         gvar = gvar["global_var"]
         emit(tmp_var, gvar, '-' + str(p[2].type), 1)
+        p[0].type=p[2].type
         emit(gvar, tmp_var, '', '')
         p[0].children = p[0].children+[p[1], p[2]]
 
@@ -352,6 +356,7 @@ class CParser:
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
+            p[0].type=p[1].type
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
     def p_additive_expression(self, p):
@@ -382,6 +387,7 @@ class CParser:
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
+            p[0].type=p[1].type
             p[0].children = p[0].children+[p[1], p[2], p[3]]
             if p[1].type != p[3].type:
                 pass
@@ -404,6 +410,7 @@ class CParser:
             
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
+            p[0].type=p[1].type
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
     def p_relational_expression(self, p):
@@ -427,6 +434,7 @@ class CParser:
             gvar1 = glo_subs(p[1].idName,global_stack,global_node)
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), tmp)
+            p[0].type=p[1].type
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -445,6 +453,7 @@ class CParser:
             gvar2 = glo_subs(p[3].idName)
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
+            p[0].type=p[1].type
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -462,6 +471,7 @@ class CParser:
             gvar2 = glo_subs(p[3].idName)
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
+            p[0].type=p[1].type
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -480,6 +490,7 @@ class CParser:
             gvar2 = glo_subs(p[3].idName)
                 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
+            p[0].type=p[1].type
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -497,6 +508,7 @@ class CParser:
             gvar2 = glo_subs(p[3].idName)
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
+            p[0].type=p[1].type
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -514,6 +526,7 @@ class CParser:
             gvar2 = glo_subs(p[3].idName)
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
+            p[0].type=p[1].type
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
@@ -531,6 +544,7 @@ class CParser:
             gvar2 = glo_subs(p[3].idName)
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
+            p[0].type=p[1].type
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]
 
