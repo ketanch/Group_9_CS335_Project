@@ -642,9 +642,9 @@ class CParser:
                     pr_error("Variable redefined at line = %d" % (p.lineno(1)))
                 # if check_data_type_not_def(p[0])
                 # adding variables to symbol table
-                add_var(tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=0,global_stack=global_stack)
+                add_var(p,tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=0,global_stack=global_stack)
             else:
-                add_var(tmp_node=p[2],type=p[0].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=1,global_stack=global_stack)
+                add_var(p,tmp_node=p[2],type=p[0].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=1,global_stack=global_stack)
                 struct_name=p[0].type[6:]
                 if(struct_name[-4:]=='0ptr'):
                     struct_name=struct_name[:-4]
@@ -1071,7 +1071,7 @@ class CParser:
         if(len(p) == 4):
             p[0] = p[1]
 
-    def p_initializer(self, p):
+    def p_initializer_1(self, p):
         '''initializer  : '{' initializer_list '}'
                        | '{' initializer_list ',' '}'  
                        | assignment_expression                            
@@ -1079,12 +1079,17 @@ class CParser:
         p[0] = Node(name='initializer')
         if(len(p) == 4):
             # p[0].children+=[p[1],p[2],p[3]]
-            p[0]=p[2]
+            p[0].array_list=p[2].array_list
+            p[0].children=[p[2],p[3]]
         elif len(p)==5:
             # p[0].children+=[p[1],p[2],p[4]]
             p[0]=p[2]
         else:
             p[0] = p[1]
+
+    def p_initializer_2(self, p):
+        '''initializer  : '{' '}' '''
+        p[0] = Node(name='initializer')
 
     def p_initializer_list(self, p):
         '''initializer_list : initializer
@@ -1581,8 +1586,8 @@ class CParser:
         variable_optimize(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
-        # print(json.dumps(symbolTable,indent=4))
-        print(json.dumps(program_variables,indent=4))
+        print(json.dumps(symbolTable,indent=4))
+        # print(json.dumps(program_variables,indent=4))
         generate_final_code(tac_code)
 
     def generate_dot(self):

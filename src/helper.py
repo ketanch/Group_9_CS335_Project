@@ -109,7 +109,7 @@ def check_if_const_changed(var,global_node,global_stack):
     return False
 
 
-def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
+def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
     global var_global_ctr
     prev_node=tmp_node
     ctr = 0
@@ -117,8 +117,7 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
         ctr += 1
         child=tmp_node.children[1]
         # emit(child.idName, child.value if child.value!="" else child.idName, '', '')
-        if(type!=child.type):
-            pr_error("Type mismatch")
+        
         global_node["variables"][child.idName]={
             "type":type,
             "value":child.value,
@@ -131,6 +130,8 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             "elements":{},
             "global_var": "1gvar_" + str(var_global_ctr)
         }
+        if(child.name!="direct_declarator" and type!=child.type and global_node["variables"][child.idName]["array"]):
+            pr_error("Type mismatch")
         program_variables["1gvar_" + str(var_global_ctr)] = global_node["variables"][child.idName]
         var_global_ctr += 1
         #adding struct elements in var
@@ -152,6 +153,10 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
                 if len(child.children[0].children) and child.children[0].children[0].name=='pointer':
                     global_node["variables"][child.idName]["type"]+="0ptr"
                 elif(child.children[2].name!="constant"):
+                    if(len(child.children[0].children)==2):
+                        given_size=int(child.children[0].children[1].value)
+                        if(given_size!=len(child.children[2].array_list)):
+                            pr_error("Size mismatch for variable %s at line no. %d"%(p[0].idName,p.lineno(1)))
                     
                     global_node["variables"][child.idName]["array"]=1
                     global_node["variables"][child.idName]["size"]=len(child.children[2].array_list)
@@ -192,6 +197,11 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             if len(tmp_node.children[0].children) and tmp_node.children[0].children[0].name=='pointer':
                 global_node["variables"][tmp_node.idName]["type"]+="0ptr"
             elif(tmp_node.children[2].name!='constant'):
+                given_size=0
+                if(len(tmp_node.children[0].children)==2):
+                    given_size=int(tmp_node.children[0].children[1].value)
+                    if(given_size!=len(tmp_node.children[2].array_list)):
+                        pr_error("Size mismatch for variable %s at line no. %d"%(p[0].idName,p.lineno(1)))
                 global_node["variables"][tmp_node.idName]["array"]=1
                 global_node["variables"][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)
                 global_node["variables"][tmp_node.idName]["value"]=tmp_node.children[2].array_list
@@ -201,7 +211,7 @@ def add_var(tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
     else:
         for i in range(ctr):
             global_tac_code[-1-i].dest = glo_subs(global_tac_code[-1-i].dest, global_stack, global_node)
-    if(type!=tmp_node.type and not global_node["variables"][tmp_node.idName]["array"]):
+    if tmp_node.name!="direct_declarator" and type!=tmp_node.type and not global_node["variables"][tmp_node.idName]["array"]:
         pr_error("Type mismatch")
             
 def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
