@@ -213,9 +213,8 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             global_tac_code[-1-i].dest = glo_subs(global_tac_code[-1-i].dest, global_stack, global_node)
     if tmp_node.name!="direct_declarator" and type!=tmp_node.type and not global_node["variables"][tmp_node.idName]["array"]:
         pr_error("Type mismatch")
-            
+
 def add_struct_element(struct_name,tmp_node,type,qualifier_list,global_node):
-    #print(struct_name, type)
     prev_node=tmp_node
     while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
         child=tmp_node.children[1]
@@ -352,3 +351,31 @@ def check_data_type_not_def(type, global_stack, global_node):
         if type in global_stack[i]["dataTypes"]:
             return False
     return True
+
+def check_is_array(var,global_node,global_stack):
+    if var in global_node["variables"]:
+        return global_node["variables"][var]["array"]
+    for i in range(len(global_stack)-1, -1, -1):
+        if var in global_stack[i]["variables"]:
+            return global_node["variables"][var]["array"]
+    return False
+
+def check_type_mismatch(type1,type2):
+    if type1!=type2:
+        return True
+    return False
+
+def check_is_element_of_struct(struct,var,global_node,global_stack):
+    
+    try:
+        if var in global_node["variables"][struct]["elements"]:
+            return True
+    except:
+        pass
+    for i in range(len(global_stack)-1, -1, -1):
+        try:
+            if var in global_stack[i]["variables"][struct]["elements"]:
+                return True
+        except:
+            pass
+    return False

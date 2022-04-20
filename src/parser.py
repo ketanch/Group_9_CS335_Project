@@ -189,7 +189,7 @@ class CParser:
             return
         gvar = gvar["global_var"]
         emit(tmp_var1, gvar, '', '')
-        emit(tmp_var2, gvar, '-' + str(p[1].type), 1)
+        emit(tmp_var2, gvar, '-' + str(p[1].type), '1')
         p[0].type=p[1].type
         emit(gvar, tmp_var2, '', '')
         p[0].idName = tmp_var1
@@ -208,7 +208,7 @@ class CParser:
             return
         gvar = gvar["global_var"]
         emit(tmp_var1, gvar, '', '')
-        emit(tmp_var2, gvar, '+' + str(p[1].type), 1)
+        emit(tmp_var2, gvar, '+' + str(p[1].type), '1')
         p[0].type=p[1].type
         emit(gvar, tmp_var2, '', '')
         p[0].idName = tmp_var1
@@ -219,6 +219,10 @@ class CParser:
        '''
         p[0] = Node(name='postfix_expression')
         p[0].children = p[0].children+[p[1], p[2], p[3]]
+        flg=0
+        if not check_is_element_of_struct(p[1].idName,p[3],global_node,global_stack):
+            pr_error("%s not a member of %s at line no. %d"%(p[3],p[1].idName,p.lineno(1)))
+            flg=1
         t=get_var_type(p[1].idName,global_stack,global_node)
         if(p[2]=='.' and t[-4:]=='0ptr'):
             pr_error('%s is a pointer; did you mean to use "->" ? in line number %d' % (p[1].idName, p.lineno(1)))
@@ -227,8 +231,10 @@ class CParser:
         if p[2] == '.':
             tmp_var = create_new_var()
             gvar = glo_subs(p[1].idName, global_stack, global_node)
-            offset = program_variables[gvar]["elements"][p[3]]["offset"]
-            emit(tmp_var, gvar, '+', offset)
+            offset=0
+            if not flg:
+                offset = program_variables[gvar]["elements"][p[3]]["offset"]
+            emit(tmp_var, gvar, '+', str(offset))
             p[0].idName = tmp_var
             return        
         p[0].idName=p[1].idName+p[2]+p[3]
@@ -242,7 +248,7 @@ class CParser:
         tmp_var1 = create_new_var()
         var_data = get_var_data(p[1].idName, global_stack, global_node)
         type_size = get_data_type_size(var_data["type"], global_node, global_stack)
-        emit(tmp_var1, p[3].value, '*', type_size)
+        emit(tmp_var1, p[3].value, '*', str(type_size))
         tmp_var2 = create_new_var()
         gvar = glo_subs(p[1].idName, global_stack, global_node)
         emit(tmp_var2, gvar, '+', tmp_var1)
@@ -275,7 +281,9 @@ class CParser:
                 pr_error("Invalid increment operation at line = %d" % (p.lineno(2)))
                 return
             gvar = gvar["global_var"]
-            emit(tmp_var, gvar, '+' + str(p[2].type), 1)
+            if(check_is_array(p[2].idName,global_node,global_stack) ):
+                pr_error("%s on array is not allowed"%(p[1]))
+            emit(tmp_var, gvar, '+' + str(p[2].type), '1')
             p[0].type=p[2].type
             emit(gvar, tmp_var, '', '')
             p[0].children = p[0].children+[p[1], p[2]]
@@ -291,7 +299,9 @@ class CParser:
             pr_error("Invalid decrement operation at line = %d" % (p.lineno(2)))
             return
         gvar = gvar["global_var"]
-        emit(tmp_var, gvar, '-' + str(p[2].type), 1)
+        if(check_is_array(p[2].idName,global_node,global_stack) ):
+                pr_error("%s on array is not allowed"%(p[1]))
+        emit(tmp_var, gvar, '-' + str(p[2].type), '1')
         p[0].type=p[2].type
         emit(gvar, tmp_var, '', '')
         p[0].children = p[0].children+[p[1], p[2]]
@@ -306,6 +316,8 @@ class CParser:
             var = 'mem'
         elif p[1].value == '*':
             var = 'deref'
+        if(check_is_array(p[2].idName,global_node,global_stack) ):
+                pr_error("%s on array is not allowed"%(p[1] if isinstance(p[1],str) else p[1].idName))
         gvar = glo_subs(p[2].idName, global_stack, global_node)
         emit(tmp_var, gvar, var, '')
         p[0].children = p[0].children+[p[1], p[2]]
@@ -341,7 +353,8 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-
+            if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
+                pr_error("%s on array is not allowed"%(p[2]))
             gvar1 = None
             gvar2 = None
             if p[1].idName != "":
@@ -370,7 +383,8 @@ class CParser:
         else:
 
             tmp_var = create_new_var()
-
+            if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
+                pr_error("%s on array is not allowed"%(p[2]))
             gvar1 = None
             gvar2 = None
             if p[1].idName != "":
@@ -407,7 +421,8 @@ class CParser:
             tmp_var = create_new_var()
             gvar1 = glo_subs(p[1].idName)
             gvar2 = glo_subs(p[3].idName)
-            
+            if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
+                pr_error("%s on array is not allowed"%(p[2]))
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].idName = tmp_var
             p[0].type=p[1].type
@@ -432,7 +447,8 @@ class CParser:
                 tmp = p[3].value
             
             gvar1 = glo_subs(p[1].idName,global_stack,global_node)
-
+            if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
+                pr_error("%s on array is not allowed"%(p[2]))
             emit(tmp_var, gvar1, p[2] + str(p[1].type), tmp)
             p[0].type=p[1].type
             p[0].idName = tmp_var
@@ -451,7 +467,8 @@ class CParser:
 
             gvar1 = glo_subs(p[1].idName)
             gvar2 = glo_subs(p[3].idName)
-
+            if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
+                pr_error("%s on array is not allowed"%(p[2]))
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].type=p[1].type
             p[0].idName = tmp_var
@@ -466,7 +483,8 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-
+            if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
+                pr_error("%s on array is not allowed"%(p[2]))
             gvar1 = glo_subs(p[1].idName)
             gvar2 = glo_subs(p[3].idName)
 
@@ -488,7 +506,8 @@ class CParser:
 
             gvar1 = glo_subs(p[1].idName)
             gvar2 = glo_subs(p[3].idName)
-                
+            if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
+                pr_error("%s on array is not allowed"%(p[2]))  
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].type=p[1].type
             p[0].idName = tmp_var
@@ -506,7 +525,8 @@ class CParser:
 
             gvar1 = glo_subs(p[1].idName)
             gvar2 = glo_subs(p[3].idName)
-
+            if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
+                pr_error("%s on array is not allowed"%(p[2]))
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].type=p[1].type
             p[0].idName = tmp_var
@@ -521,7 +541,8 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-
+            if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
+                pr_error("%s on array is not allowed"%(p[2]))
             gvar1 = glo_subs(p[1].idName)
             gvar2 = glo_subs(p[3].idName)
 
@@ -539,7 +560,8 @@ class CParser:
             p[0] = p[1]
         else:
             tmp_var = create_new_var()
-
+            if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
+                pr_error("%s on array is not allowed"%(p[2]))
             gvar1 = glo_subs(p[1].idName)
             gvar2 = glo_subs(p[3].idName)
 
@@ -742,7 +764,6 @@ class CParser:
     def p_STRUCTMARKER2(self,p):
         '''STRUCTMARKER2 : '''
         global struct_name
-        print(struct_name)
         max_len = 0
         ele_arr = list(global_node["dataTypes"][struct_name].keys())
         ele_arr.remove("1type")
@@ -761,15 +782,14 @@ class CParser:
 
 
     def p_struct_or_union_specifier(self, p):
-        '''struct_or_union_specifier    : struct_or_union STRUCTMARKER1 '{' struct_declaration_list '}' STRUCTMARKER2
-                                       | struct_or_union ID STRUCTMARKER1 '{' struct_declaration_list '}' STRUCTMARKER2
+        '''struct_or_union_specifier    : struct_or_union ID STRUCTMARKER1 '{' struct_declaration_list '}' STRUCTMARKER2
                                        | struct_or_union ID
        '''
         p[0] = Node(name='struct_or_union_specifier', type=p[1].type)
         global global_node
-        if(len(p) == 6):
+        if(len(p) == 7):
             p[0].children = p[0].children+[p[1], p[4]]
-        elif(len(p) == 7):
+        elif(len(p) == 8):
             p[0].children = p[0].children+[p[1], p[2], p[5]]
         else:
             p[0].children+=[p[1],p[2]]
@@ -1535,6 +1555,7 @@ class CParser:
         print(p, type(p))
         # print(p.lineno, self.find_column(p.lexpos))
         print("Syntax error in input!")
+        exit(-1)
 
     def build(self, **kwargs):
         self.parser = yacc.yacc(
@@ -1583,7 +1604,7 @@ class CParser:
         for i in global_tac_code:
             print(i.print())
         #gen_var_offset(symbolTable)
-        variable_optimize(tac_code)
+        #variable_optimize(tac_code)
         self.generate_dot_ast(result)
         self.generate_dot()
         print(json.dumps(symbolTable,indent=4))
