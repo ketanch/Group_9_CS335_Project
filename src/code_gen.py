@@ -15,7 +15,7 @@ data_type_size = {
 
 #returns size of a data type
 def get_data_type_size(type, global_node, global_stack):
-    # print(type, end = ' ')
+    print(type, end = ' ')
     type_size = data_type_size.get(type, None)
     found = 0
     if type_size == None:
@@ -238,4 +238,4 @@ def generate_final_code(emit_arr):
     mips_gen = MIPSGenerator()
     for i in emit_arr:
         mips_gen.tac_to_mips(i)
-    # print(mips_gen.mips_code)
+    print(mips_gen.mips_code)
