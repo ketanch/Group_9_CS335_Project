@@ -1,5 +1,5 @@
-from numpy import var
-from symbolTab import program_variables
+from operator import is_
+from symbolTab import program_variables, symbolTable
 
 data_type_size = {
     "int": 4,
@@ -125,7 +125,15 @@ def is_glo_var(var):
     return var.startswith('1gvar_')
 
 def variable_optimize(block):
-    symTab = {i.dest: {"state": "dead"} for i in block if is_temp(i.dest)}
+    #symTab = {i.dest: {"state": "dead"} for i in block if is_temp(i.dest)}
+    symTab = {}
+    for i in block:
+        if is_temp(i.dest):
+            symTab[i.dest] = {"state": "dead"}
+        if is_glo_var(i.src1):
+            symTab[i.src1] = {}
+        if is_glo_var(i.src2):
+            symTab[i.src2] = {}
     statement_data = [None] * len(block)
     for ind in range(len(statement_data)):
         statement_data[ind] = {"reuse":[]}
@@ -136,14 +144,28 @@ def variable_optimize(block):
                 statement_data[i]["reuse"].append(ins.src1)
             symTab[ins.src1]["state"] = "live"
             symTab[ins.src1]["next_use"] = i
+        elif is_glo_var(ins.src1):
+            if symTab[ins.src1].get("next_use", None) == None:
+                symTab[ins.src1]["next_use"] = i
         if is_temp(ins.src2):
             if symTab[ins.src2]["state"] == "dead":
                 statement_data[i]["reuse"].append(ins.src2)
             symTab[ins.src2]["state"] = "live"
             symTab[ins.src2]["next_use"] = i
+        elif is_glo_var(ins.src2):
+            if symTab[ins.src2].get("next_use", None) == None:
+                symTab[ins.src2]["next_use"] = i
         if is_temp(ins.dest):
             symTab[ins.dest]["state"] = "dead"
-            symTab[ins.dest].pop("next_use")
+    for ind,i in enumerate(block):
+        if i.src1 in symTab.keys():
+            if symTab[i.src1]["next_use"] != ind:
+                i.next_use["src1"] = symTab[i.src1]["next_use"]
+        if i.src2 in symTab.keys():
+            if symTab[i.src2]["next_use"] != ind:
+                i.next_use["src2"] = symTab[i.src2]["next_use"]
+        if i.dest in symTab.keys():
+            i.next_use["dest"] = symTab[i.dest]["next_use"]
     var_map = {i:i for i in symTab.keys()}
     reuse_var = []
     for i in range(len(block)):
@@ -167,11 +189,45 @@ def variable_optimize(block):
     return block
 
 #variable_optimize(block)
+ 
+def rep_float_int(n) :
 
-register_des = {}
-for i in range(32):
-    register_des[str(i)] = None
+    def float_bin(my_number, places = 3):
+        my_whole, my_dec = str(my_number).split(".")
+        my_whole = int(my_whole)
+        res = (str(bin(my_whole))+".").replace('0b','')
+        for x in range(places):
+            my_dec = str('0.')+str(my_dec)
+            temp = '%1.20f' %(float(my_dec)*2)
+            my_whole, my_dec = temp.split(".")
+            res += my_whole
+        return res
 
+    sign = 0
+    if n < 0 :
+        sign = 1
+        n = n * (-1)
+    p = 30
+    dec = float_bin (n, places = p)
+    dotPlace = dec.find('.')
+    onePlace = dec.find('1')
+    if onePlace > dotPlace:
+        dec = dec.replace(".","")
+        onePlace -= 1
+        dotPlace -= 1
+    elif onePlace < dotPlace:
+        dec = dec.replace(".","")
+        dotPlace -= 1
+    mantissa = dec[onePlace+1:]
+ 
+    exponent = dotPlace - onePlace
+    exponent_bits = exponent + 127
+    exponent_bits = bin(exponent_bits).replace("0b",'')
+ 
+    mantissa = mantissa[0:23]    
+    final = str(sign) + exponent_bits.zfill(8) + mantissa
+    hstr = '0x%0*X' %((len(final) + 3) // 4, int(final, 2))
+    return int(hstr, 16)
 
 class TACInstruction:
     def __init__(self, src1, src2, dest, op):
@@ -186,56 +242,213 @@ class TACInstruction:
         }
 
     def print(self):
-        return [self.dest, self.src1, self.op, self.src2]
+        print([self.dest, self.src1, self.op, self.src2], self.next_use)
+
+def _reg(reg):
+    return '$'+str(reg)
+
+'''
+Zero reg - $0
+$1 ($at) -> try not to use
+Return values - $2,$3 ($v0,$v1)
+Function arguments - $4,$5,$6,$7 ($a0,$a1,$a2,$a3)
+Caller saved - $8 to $15 ($t0 to $t7)
+Callee saved - $16 to $23 ($s0 to $s7)
+Caller saved - $24,$25 ($t8,$t9)
+Global pointer - $28 ($gp) -> for global vars, callee saved reg
+Stack ptr - $29 ($sp)
+Frame ptr - $30 ($fp)
+Return address - $31 ($ra)
+'''
 
 class MIPSGenerator:
 
     def __init__(self):
         self.mips_code = ''
+        self.current_func = None
+        self.func_code = ''
+        #Register decriptor
+        self.register_des = {}
+        for i in range(1, 32):
+            self.register_des[str(i)] = None
+        self.address_des = {}
+        self.caller_saved = [8,9,10,11,12,13,14,15,24,25]
+        self.callee_saved = [16,17,18,19,20,21,22,23]
 
-    def getreg(self):
+    def push(self, reg):
+        self.mips_code += '\n\tsw %s, -4($29)\
+                           \n\taddi $29, $29, -4' % (reg)
+    
+    def pop(self, reg):
+        self.mips_code += '\n\tlw %s, 0($29)\
+                           \n\taddi $29, $29, 4' % (reg)
+
+    def free_regs(self):
+        '''
+        Will get called if no more registers left
+        '''
         pass
+
+    def getreg(self, ins = None):
+        if ins != None:
+            if ins.next_use["src1"] == None and (is_temp(ins.src1) or (is_glo_var(ins.src1) and ins.src1 in self.address_des.keys())):
+                return _reg(self.address_des[ins.src1])
+            elif ins.next_use["src2"] == None and (is_temp(ins.src2) or (is_glo_var(ins.src2) and ins.src2 in self.address_des.keys())):
+                return _reg(self.address_des[ins.src2])
+        if len(self.caller_saved) != 0:
+            reg = self.caller_saved.pop(0)
+            return _reg(reg)
+        else:
+            reg = self.free_regs()
+            return _reg(reg)
 
     def prepare_reg(self, var):
-        pass
+        reg = None
+        if var in self.address_des.keys():
+            reg = self.address_des[var]
+        elif is_glo_var(var):
+            reg = self.getreg()
+            reg = int(reg.strip('$'))
+            self.mips_code += '\n\tlw $%d, -%d($30)' % (reg, program_variables[var]["offset"])
+            self.address_des[var] = reg
+            self.register_des[reg] = var
+        else:
+            print("Temp variables should be in reg")
+            print(var, self.address_des)
+            raise SyntaxError
+        return _reg(reg)
 
-    def tac_to_mips(self, tac_code):
-        if tac_code.op == '+int':
-            flag_imm = 0
-            dest_reg = self.getreg()
+    def update_desc(self, ins, rsrc1 = None, rsrc2 = None, rdest = None):
+        '''
+        This function updates the descriptors after an instruction
+        '''
+        #print("des1", self.address_des)
+        if rdest != None:
+            self.register_des[int(rdest.strip('$'))] = ins.dest
+            if ins.dest in self.address_des:
+                self.register_des[self.address_des[ins.dest]] = None
+            self.address_des[ins.dest] = int(rdest.strip('$'))
+        if rsrc1 != None and ins.next_use["src1"] == None and ins.src1 != ins.dest:
+            self.register_des[rsrc1] = None
+            self.caller_saved.append(int(rsrc1.strip('$')))
+            self.caller_saved.sort()
+            self.address_des.pop(ins.src1)
+        if rsrc2 != None and ins.next_use["src2"] == None and ins.src1 != ins.src2 and ins.src2 != ins.dest:
+            self.register_des[rsrc2] = None
+            self.caller_saved.append(int(rsrc2.strip('$')))
+            self.caller_saved.sort()
+            self.address_des.pop(ins.src2)
+        #print("des2", self.address_des)
+
+    def load_constant_in_reg(self, const, type, reg):
+        if type == "int":
+            self.mips_code += '\n\taddi %s, $0, %s' % (reg, const)
+        elif type == "char":
+            self.mips_code += '\n\taddi %s, $0, 0\n\taddi %s, $0, %s' % (reg, reg, const)
+        elif type == "float":
+            float_rep = rep_float_int(float(const))
+
+    def load_var_in_reg(self, var, type, reg):
+        if type == "int":
+            self.mips_code += '\n\tlw %s, -%d($30)' % (reg, program_variables[var]["offset"])
+
+    def tac_to_mips(self, tac_code, symTab):
+        src1_reg = None
+        src2_reg = None
+        dest_reg = None
+
+        if tac_code.op in ['+int', '*int']:
+            op = tac_code.op
             src1_dec = tac_code.src1.isdecimal()
             src2_dec = tac_code.src2.isdecimal()
+            if not src1_dec:
+                src1_reg = self.prepare_reg(tac_code.src1)
+            if not src2_dec:
+                src2_reg = self.prepare_reg(tac_code.src2)
+            dest_reg = self.getreg(tac_code)
             if src1_dec and src2_dec:
                 self.mips_code += '\n\taddi %s, $0, %s' % (dest_reg, int(tac_code.src1) + int(tac_code.src2))
             elif src1_dec:
-                self.mips_code += '\n\taddi %s, %s, %s' % (dest_reg, self.prepare_reg(tac_code.src2), tac_code.src1)
+                if op == '+int':
+                    self.mips_code += '\n\taddi %s, %s, %s' % (dest_reg, src2_reg, tac_code.src1)
+                elif op == '*int':
+                    src1_reg = self.getreg()
+                    self.load_constant_in_reg(tac_code.src1, "int", src1_reg)
+                    self.mips_code += '\n\tmul %s, %s, %s' % (dest_reg, src2_reg, src1_reg)
             elif src2_dec:
-                self.mips_code += '\n\taddi %s, %s, %s' % (dest_reg, self.prepare_reg(tac_code.src1), tac_code.src2)
+                if op == '+int':
+                    self.mips_code += '\n\taddi %s, %s, %s' % (dest_reg, src1_reg, tac_code.src2)
+                elif op == '*int':
+                    src2_reg = self.getreg()
+                    self.load_constant_in_reg(tac_code.src2, "int", src2_reg)
+                    self.mips_code += '\n\tmul %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
             else:
-                self.mips_code += '\n\taddu %s, %s, %s' % (dest_reg, self.prepare_reg(tac_code.src1), self.prepare_reg(tac_code.src2))
+                if op == '+int':
+                    self.mips_code += '\n\taddu %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
+                elif op == '*int':
+                    self.mips_code += '\n\tmul %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
 
+        if tac_code.op == '*int':
+            pass
+            
         elif tac_code.op == 'gotofunc':
             pass
 
         elif tac_code.op == 'return':
             if tac_code.src1 == '':
-                self.mips_code += '\n\tjr $ra'
-            elif is_glo_var(tac_code.src1):
-                self.mips_code += '\n\tlw $v0, -%d($fp)' % (program_variables[tac_code.src1]["offset"])
-            elif is_temp(tac_code.src1):
-                self.mips_code
+                pass
+            elif is_glo_var(tac_code.src1) or is_temp(tac_code.src1):
+                if tac_code.src1 in self.address_des.keys():
+                    self.mips_code += '\n\taddu $2, $0, $%d' % (self.address_des[tac_code.src1])
+                elif is_glo_var(tac_code.src1):
+                    self.mips_code += '\n\tlw $2, -%d($fp)' % (program_variables[tac_code.src1]["offset"])
+            else:
+                #Constant value return
+                ret_type = symTab[self.current_func]["func_parameters"]["return_type"]
+                self.load_constant_in_reg(tac_code.src1, ret_type, "$2")
+            self.mips_code += '\n\tjr $ra'
+            self.func_code = None
 
         elif tac_code.op == 'label':
             self.mips_code += '\n' + tac_code.dest + ':'
+
+        elif tac_code.op == 'func_label':
+            self.current_func = tac_code.dest
+            self.mips_code += '\n'+tac_code.dest+':'
+            self.push("$30")
+            self.mips_code += '\n\taddu $30, $0, $29'
+            self.mips_code += '\n\taddiu $29, $29, -%d' % (symbolTable[self.current_func]["stack_offset"])
 
         elif tac_code.op == 'goto':
             pass
 
         elif tac_code.op == 'store':
-            pass
+            src1 = tac_code.src1
+            reg = None
+            if is_temp(src1):
+                reg = self.address_des[src1]
+            elif is_glo_var(src1):
+                if src1 in self.address_des[src1]:
+                    reg = self.address_des[src1]
+                else:
+                    reg = self.getreg(tac_code)
+                    self.load_var_in_reg(src1, program_variables[src1]["type"], reg)
+            else:
+                reg = self.getreg(tac_code)
+                var_type = program_variables[tac_code.dest]["type"]
+                self.load_constant_in_reg(tac_code.src1, var_type, reg)
+            self.mips_code += '\n\tsw %s, -%d($30)' % (reg, program_variables[tac_code.dest]["offset"])
+            dest_reg = _reg(reg)
+        
+        self.update_desc(tac_code, src1_reg, src2_reg, dest_reg)
+
+        #print(self.address_des)
 
 def generate_final_code(emit_arr):
     mips_gen = MIPSGenerator()
+    ctr = 0
     for i in emit_arr:
-        mips_gen.tac_to_mips(i)
+        #print(ctr)
+        ctr += 1
+        mips_gen.tac_to_mips(i, symbolTable)
     print(mips_gen.mips_code)

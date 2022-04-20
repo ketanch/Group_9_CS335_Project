@@ -1664,17 +1664,20 @@ class CParser:
             print("'main' function not present.")
             exit(1)
         print("Parsing completed successfully")
-        for i in tac_code:
-            print(i.print())
-        print("GlobalTAC code:")
-        for i in global_tac_code:
-            print(i.print())
-        #gen_var_offset(symbolTable)
-        #variable_optimize(tac_code)
+        # for i in tac_code:
+        #     print(i.print())
+        # print("GlobalTAC code:")
+        # for i in global_tac_code:
+        #     print(i.print())
+        gen_var_offset(symbolTable)
+        variable_optimize(tac_code)
+        for ind, i in enumerate(tac_code):
+            print(ind, end = ' - ')
+            i.print()
         self.generate_dot_ast(result)
         self.generate_dot()
         print(json.dumps(symbolTable,indent=4))
-        # print(json.dumps(program_variables,indent=4))
+        #print(json.dumps(program_variables,indent=4))
         generate_final_code(tac_code)
 
     def generate_dot(self):
