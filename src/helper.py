@@ -63,6 +63,10 @@ def check_variable_not_def(var, global_stack, global_node):
     if var in global_node["func_parameters"]["arguments"].keys():
         return False
     return True
+def check_func_not_def(var):
+    if var in symbolTable:
+        return False
+    return True
 
 def get_var_type(var, global_stack, global_node):
     if var in global_node["variables"]:
@@ -91,8 +95,8 @@ def get_var_type_struct_element(struct_name,element_name, global_stack, global_n
     return "Not Defined"
 
 def check_variable_func_conflict(var, symbolTable):
-    if var in symbolTable.keys():
-        return True
+    # if var in symbolTable.keys():
+    #     return True
     return False
 
 def check_variable_dataType_conflict(var, global_node,global_stack):
@@ -162,12 +166,16 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             "elements":{},
             "global_var": "1gvar_" + str(var_global_ctr)
         }
-        if(child.type=='' and len(child.children)==3):
-            child.type=get_var_type(child.children[2].idName,global_stack,global_node)
-        if(type.endswith('int') and child.type.endswith('int')):
-            pass
-        elif(child.name!="direct_declarator" and type!=child.type and global_node["variables"][child.idName]["array"]):
-            pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+        if child.name=="init_declarator":
+            if child.type=='':
+                child.type=get_var_type(child.children[2].idName,global_stack,global_node)
+            if len(child.children)==3 and child.children[2].name =='unary_expression':
+                child.type=get_var_type(child.value,global_stack,global_node)
+            if(type.endswith('int') and child.type.endswith('int')):
+                pass
+            elif(type!=child.type):
+                print(child.value)
+                pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
         program_variables["1gvar_" + str(var_global_ctr)] = global_node["variables"][child.idName]
         var_global_ctr += 1
         #adding struct elements in var
@@ -253,12 +261,16 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
     else:
         for i in range(ctr):
             global_tac_code[-1-i].dest = glo_subs(global_tac_code[-1-i].dest, global_stack, global_node)
-    if(tmp_node.type=='' and len(tmp_node.children)==3):
-        tmp_node.type=get_var_type(tmp_node.children[2].idName,global_stack,global_node)
-    if(type.endswith('int') and tmp_node.type.endswith('int')):
+    if tmp_node.name=="init_declarator":
+        if tmp_node.type=='':
+            tmp_node.type=get_var_type(tmp_node.children[2].idName,global_stack,global_node)
+        if len(tmp_node.children)==3 and tmp_node.children[2].name =='unary_expression':
+            tmp_node.type=get_var_type(tmp_node.value,global_stack,global_node)
+            print(tmp_node.idName,tmp_node.type)
+        if(type.endswith('int') and tmp_node.type.endswith('int')):
             pass
-    elif tmp_node.name!="direct_declarator" and type!=tmp_node.type and not global_node["variables"][tmp_node.idName]["array"]:
-        pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+        elif(type!=tmp_node.type):
+            pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
         
 
 def add_struct_element(p,struct_name,tmp_node,type,qualifier_list,global_node):
@@ -456,3 +468,130 @@ def check_is_element_of_struct(struct,var,global_node,global_stack):
         except:
             pass
     return False
+
+def add_arguments(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack,entry_node):
+    global var_global_ctr
+    prev_node=tmp_node
+    ctr = 0
+    print(tmp_node.name)
+    while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
+        ctr += 1
+        child=tmp_node.children[1]
+        if check_variable_func_conflict(child.idName, symbolTable):
+            pr_error("Function name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
+        if check_variable_dataType_conflict(child.idName, global_node,global_stack):
+            pr_error("Struct/Union name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
+        if check_variable_redefined(child.idName,global_node):
+            pr_error("Variable redefined at line = %d" % (p.lineno(1)))        
+        entry_node["arguments"][child.idName]={
+            "type":type,
+            "value":child.value,
+            "array":0,
+            "size":0,
+            "offset":0,
+            "const":0,
+            "volatile":0,
+            "struct":isStruct,
+            "elements":{},
+        }
+        if child.name=="init_declarator":
+            if child.type=='':
+                child.type=get_var_type(child.children[2].idName,global_stack,global_node)
+            if(type.endswith('int') and child.type.endswith('int')):
+                pass
+            elif(type!=child.type):
+                print(child.name,child.type)
+                pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+        program_variables["1gvar_" + str(var_global_ctr)] = global_node["variables"][child.idName]
+        var_global_ctr += 1
+        #adding struct elements in var
+        if(isStruct):
+            add_struct_elements_in_var(global_stack,global_node,global_node["variables"][child.idName])
+
+        # checking for const,unsigned,volatile
+        for quality in qualifier_list:
+            global_node["variables"][child.idName][quality]=1
+        # checking if it is an array
+        if(len(child.children)==2):
+            if child.children[0].name=='pointer':
+                 global_node["variables"][child.idName]["type"]+='0ptr'
+            else:
+                global_node["variables"][child.idName]["array"]=1
+                global_node["variables"][child.idName]["size"]=int(child.children[1].value)
+        if(len(child.children)==3):
+            if len(child.children):
+                if len(child.children[0].children) and child.children[0].children[0].name=='pointer':
+                    global_node["variables"][child.idName]["type"]+="0ptr"
+                elif(child.children[2].name!="constant"):
+                    if(len(child.children[0].children)==2):
+                        given_size=int(child.children[0].children[1].value)
+                        if(given_size!=len(child.children[2].array_list)):
+                            pr_error("Size mismatch for variable %s at line no. %d"%(p[0].idName,p.lineno(1)))
+                    
+                    global_node["variables"][child.idName]["array"]=1
+                    global_node["variables"][child.idName]["size"]=len(child.children[2].array_list)
+                    global_node["variables"][child.idName]["value"]=child.children[2].array_list
+        
+        prev_node=child
+        tmp_node=tmp_node.children[0]    
+    if check_variable_func_conflict(tmp_node.idName, symbolTable):
+        pr_error("Function name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
+    if check_variable_dataType_conflict(tmp_node.idName, global_node,global_stack):
+        pr_error("Struct/Union name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
+    if check_variable_redefined(tmp_node.idName,global_node):
+        pr_error("Variable redefined at line = %d" % (p.lineno(1)))
+    if(tmp_node.name=='pointer'):
+        global_node["variables"][prev_node.idName]["type"]+="0ptr"
+    else:
+        ctr += 1
+        entry_node["arguments"][tmp_node.idName]={
+            "type":type,
+            "value":tmp_node.value,
+            "array":0,
+            "size":0,
+            "offset":0,
+            "const":0,
+            "volatile":0,
+            "struct":isStruct,
+            "elements":{},
+            "global_var": "1gvar_" + str(var_global_ctr)
+        }
+        program_variables["1gvar_" + str(var_global_ctr)] = global_node["variables"][tmp_node.idName]
+        var_global_ctr += 1
+        if(isStruct):
+            add_struct_elements_in_var(global_stack,global_node,global_node["variables"][tmp_node.idName])
+        # emit(tmp_node.idName, tmp_node.value if tmp_node.value!="" else tmp_node.idName, '', '')
+    # checking for const,unsigned,volatile
+    for quality in qualifier_list:
+        global_node["variables"][tmp_node.idName][quality]='1'
+    if(len(tmp_node.children)==2):
+        
+        global_node["variables"][tmp_node.idName]["array"]=1
+        global_node["variables"][tmp_node.idName]["size"]=tmp_node.children[1].value        
+    if(len(tmp_node.children)==3):
+        if len(tmp_node.children):
+            if len(tmp_node.children[0].children) and tmp_node.children[0].children[0].name=='pointer':
+                global_node["variables"][tmp_node.idName]["type"]+="0ptr"
+            elif(tmp_node.children[2].name!='constant' and not tmp_node.children[2].name.endswith("expression")):
+                given_size=0
+                if(len(tmp_node.children[0].children)==2):
+                    given_size=int(tmp_node.children[0].children[1].value)
+                    if(given_size!=len(tmp_node.children[2].array_list)):
+                        pr_error("Size mismatch for variable %s at line no. %d"%(p[0].idName,p.lineno(1)))
+                global_node["variables"][tmp_node.idName]["array"]=1
+                global_node["variables"][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)
+                global_node["variables"][tmp_node.idName]["value"]=tmp_node.children[2].array_list
+    if len(global_stack):
+        for i in range(ctr):
+            tac_code[-1-i].dest = glo_subs(tac_code[-1-i].dest, global_stack, global_node)
+    else:
+        for i in range(ctr):
+            global_tac_code[-1-i].dest = glo_subs(global_tac_code[-1-i].dest, global_stack, global_node)
+    if tmp_node.name=="init_declarator":
+        if tmp_node.type=='':
+            tmp_node.type=get_var_type(tmp_node.children[2].idName,global_stack,global_node)
+        if(type.endswith('int') and tmp_node.type.endswith('int')):
+            pass
+        elif(type!=tmp_node.type):
+            pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+        
