@@ -257,6 +257,10 @@ class CParser:
         gvar = glo_subs(p[1].idName, global_stack, global_node)
         emit(tmp_var2, gvar, '+', tmp_var1)
         p[0].idName = tmp_var2
+        try:
+            p[0].type=get_var_type(p[1].idName,global_stack,global_node)
+        except:
+            pass
 
     def p_argument_expression_list(self, p):
         '''argument_expression_list : assignment_expression
@@ -725,7 +729,7 @@ class CParser:
                 # adding variables to symbol table
                 add_var(p,tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=0,global_stack=global_stack)
             else:
-                add_var(p,tmp_node=p[2],type=p[0].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=1,global_stack=global_stack)
+                add_var(p,tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=1,global_stack=global_stack)
                 struct_name=p[0].type[6:]
                 if(struct_name[-4:]=='0ptr'):
                     struct_name=struct_name[:-4]
@@ -1551,7 +1555,13 @@ class CParser:
         try:
             root = p[2].children[1]
             
-            numberArgs = len(root.children)
+            numberArgs = 0
+            node=root
+            while not isinstance(node,str) and node.name=='parameter_list':
+                node=node.children[0]
+                numberArgs+=1
+            if(node.name=='parameter_declaration'):
+                numberArgs+=1
             if(p[2].children[1].children[0].name=="type_specifier"):
                 numberArgs = 1
             global_node[p[0].idName] = {
@@ -1567,10 +1577,13 @@ class CParser:
             if(p[2].children[1].children[0].name=="type_specifier"):
                 symbolTable[p[0].idName]["func_parameters"]["arguments"][root.children[1].idName] = root.children[0].type
             else:
-                for child in root.children:
-                    symbolTable[p[0].idName]["func_parameters"]["arguments"][child.idName] = child.type
+                node=root
+                while(not isinstance(node,str) and node.name=='parameter_list'):
+                    symbolTable[p[0].idName]["func_parameters"]["arguments"][node.children[1].idName] = node.children[1].type
+                    node=node.children[0]
+                symbolTable[p[0].idName]["func_parameters"]["arguments"][node.idName] = node.type
         except:
-            global_node[p[0].idName] = {
+            symbolTable[p[0].idName] = {
                 "func_parameters": {
                     "number_args": 0,
                     "arguments": {},
@@ -1585,7 +1598,6 @@ class CParser:
         global_stack.append(global_node)
         global_node = global_node[p[0].idName]
         emit(dest=p[2].idName, src1='', op='func_label', src2='')
-
     def p_function_definition(self, p):
         '''function_definition  : function_definition_init ';'  MARKER2
                                | function_definition_init compound_statement MARKER2 
