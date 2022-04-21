@@ -1,5 +1,4 @@
-from operator import is_
-from symbolTab import program_variables, symbolTable
+from symbolTab import program_variables, symbolTable, global_tac_code
 
 data_type_size = {
     "int": 4,
@@ -123,6 +122,15 @@ def is_temp(var):
 
 def is_glo_var(var):
     return var.startswith('1gvar_')
+
+def is_constant(var):
+    if var.isdecimal():
+        return "int"
+    try:
+        a = float(var)
+        return "float"
+    except:
+        return False
 
 def variable_optimize(block):
     #symTab = {i.dest: {"state": "dead"} for i in block if is_temp(i.dest)}
@@ -283,6 +291,10 @@ class MIPSGenerator:
         self.mips_code += '\n\tlw %s, 0($29)\
                            \n\taddi $29, $29, 4' % (reg)
 
+    def process_global_data(self):
+        self.mips_code += "\n\t.data"
+        pass
+
     def free_regs(self):
         '''
         Will get called if no more registers left
@@ -313,9 +325,10 @@ class MIPSGenerator:
             self.address_des[var] = reg
             self.register_des[reg] = var
         else:
-            print("Temp variables should be in reg")
-            print(var, self.address_des)
-            raise SyntaxError
+            if is_temp(var):
+                print("Temp variables should be in reg")
+                raise SyntaxError
+            
         return _reg(reg)
 
     def update_desc(self, ins, rsrc1 = None, rsrc2 = None, rdest = None):
@@ -342,13 +355,16 @@ class MIPSGenerator:
 
     def load_constant_in_reg(self, const, type, reg):
         if type == "int":
-            self.mips_code += '\n\taddi %s, $0, %s' % (reg, const)
+            self.mips_code += '\n\tli %s, %s' % (reg, const)
         elif type == "char":
             self.mips_code += '\n\taddi %s, $0, 0\n\taddi %s, $0, %s' % (reg, reg, const)
         elif type == "float":
             float_rep = rep_float_int(float(const))
 
     def load_var_in_reg(self, var, type, reg):
+        '''
+        Loads a program variable into a register
+        '''
         if type == "int":
             self.mips_code += '\n\tlw %s, -%d($30)' % (reg, program_variables[var]["offset"])
 
@@ -387,12 +403,10 @@ class MIPSGenerator:
                     self.mips_code += '\n\taddu %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
                 elif op == '*int':
                     self.mips_code += '\n\tmul %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
-
-        if tac_code.op == '*int':
-            pass
             
         elif tac_code.op == 'gotofunc':
-            pass
+            self.push("$31")
+            self.mips_code += '\n\tjal %s' % (tac_code.dest)
 
         elif tac_code.op == 'return':
             if tac_code.src1 == '':
@@ -406,7 +420,10 @@ class MIPSGenerator:
                 #Constant value return
                 ret_type = symTab[self.current_func]["func_parameters"]["return_type"]
                 self.load_constant_in_reg(tac_code.src1, ret_type, "$2")
-            self.mips_code += '\n\tjr $ra'
+            self.mips_code += '\n\taddiu $29, $29, %d' % (symbolTable[self.current_func]["stack_offset"])
+            self.pop("$30")
+            self.pop("$31")
+            self.mips_code += '\n\tjr $31'
             self.func_code = None
 
         elif tac_code.op == 'label':
@@ -415,6 +432,7 @@ class MIPSGenerator:
         elif tac_code.op == 'func_label':
             self.current_func = tac_code.dest
             self.mips_code += '\n'+tac_code.dest+':'
+            self.push("$31")
             self.push("$30")
             self.mips_code += '\n\taddu $30, $0, $29'
             self.mips_code += '\n\taddiu $29, $29, -%d' % (symbolTable[self.current_func]["stack_offset"])
@@ -428,7 +446,7 @@ class MIPSGenerator:
             if is_temp(src1):
                 reg = self.address_des[src1]
             elif is_glo_var(src1):
-                if src1 in self.address_des[src1]:
+                if src1 in self.address_des.keys():
                     reg = self.address_des[src1]
                 else:
                     reg = self.getreg(tac_code)
@@ -440,15 +458,35 @@ class MIPSGenerator:
             self.mips_code += '\n\tsw %s, -%d($30)' % (reg, program_variables[tac_code.dest]["offset"])
             dest_reg = _reg(reg)
         
+        elif tac_code.op == 'func_param':
+            if int(tac_code.src1) < 5:
+                var_type = is_constant(tac_code.src1)
+                val = int(tac_code.src1)
+                if is_temp(tac_code.dest) or is_glo_var(tac_code.dest):
+                    self.mips_code += '\n\taddu $%d, $0, %s' % (val+3, self.prepare_reg(self.dest))
+                elif var_type:
+                    pass
+                    #var_name = list(symbolTable[self.current_func]["func_parameters"]["arguments"].keys())[val]
+                    #var_type = symbolTable[self.current_func]["func_parameters"]["arguments"][var_name]
+                    #print(var_type)
+                    #self.load_constant_in_reg(tac_code.src1, var_type, self.getreg())
+                else:
+                    raise SyntaxError
+            else:
+                reg = self.prepare_reg(tac_code.dest)
+                self.push(reg)
+        
         self.update_desc(tac_code, src1_reg, src2_reg, dest_reg)
 
         #print(self.address_des)
 
 def generate_final_code(emit_arr):
+    for i in global_tac_code:
+        i.print()
     mips_gen = MIPSGenerator()
     ctr = 0
     for i in emit_arr:
-        #print(ctr)
+        print(ctr)
         ctr += 1
         mips_gen.tac_to_mips(i, symbolTable)
     print(mips_gen.mips_code)
