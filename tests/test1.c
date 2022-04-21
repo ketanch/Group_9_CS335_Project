@@ -1,10 +1,8 @@
-int f(){
+
+int t(int a){
     ;
 }
-int f(){
-    ;
-}
+
 int main(){
-    func();
     ;
 }

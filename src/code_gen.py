@@ -14,7 +14,7 @@ data_type_size = {
 
 #returns size of a data type
 def get_data_type_size(type, global_node, global_stack):
-    # print(type, end = ' ')
+    print(type, end = ' ')
     type_size = data_type_size.get(type, None)
     found = 0
     if type_size == None:
@@ -83,7 +83,7 @@ def gen_var_offset(symbolTable):
         lvar_list = order_variables(lvars)
         for var_data in lvar_list:
             type_len = get_type_size(var_data)
-            # local_offset = byte_align(local_offset, type_len) + type_len * var_data["array"] * var_data["size"]
+            local_offset = byte_align(local_offset, type_len) + type_len * var_data["array"] * var_data["size"]
             var_data["offset"] = local_offset
         symbolTable[func]["stack_offset"] = local_offset
 
@@ -172,8 +172,8 @@ def variable_optimize(block):
         if i.src2 in symTab.keys():
             if symTab[i.src2]["next_use"] != ind:
                 i.next_use["src2"] = symTab[i.src2]["next_use"]
-        # if i.dest in symTab.keys():
-        #     i.next_use["dest"] = symTab[i.dest]["next_use"]
+        if i.dest in symTab.keys():
+            i.next_use["dest"] = symTab[i.dest]["next_use"]
     var_map = {i:i for i in symTab.keys()}
     reuse_var = []
     for i in range(len(block)):
@@ -343,9 +343,9 @@ class MIPSGenerator:
             self.address_des[ins.dest] = int(rdest.strip('$'))
         if rsrc1 != None and ins.next_use["src1"] == None and ins.src1 != ins.dest:
             self.register_des[rsrc1] = None
-            # self.caller_saved.append(int(rsrc1.strip('$')))
+            self.caller_saved.append(int(rsrc1.strip('$')))
             self.caller_saved.sort()
-            # self.address_des.pop(ins.src1)
+            self.address_des.pop(ins.src1)
         if rsrc2 != None and ins.next_use["src2"] == None and ins.src1 != ins.src2 and ins.src2 != ins.dest:
             self.register_des[rsrc2] = None
             self.caller_saved.append(int(rsrc2.strip('$')))
@@ -443,20 +443,20 @@ class MIPSGenerator:
         elif tac_code.op == 'store':
             src1 = tac_code.src1
             reg = None
-            # if is_temp(src1):
-            #     reg = self.address_des[src1]
-            # elif is_glo_var(src1):
-            #     if src1 in self.address_des.keys():
-            #         reg = self.address_des[src1]
-            #     else:
-            #         reg = self.getreg(tac_code)
-            #         self.load_var_in_reg(src1, program_variables[src1]["type"], reg)
-            # else:
-            #     reg = self.getreg(tac_code)
-            #     var_type = program_variables[tac_code.dest]["type"]
-            #     self.load_constant_in_reg(tac_code.src1, var_type, reg)
-            # self.mips_code += '\n\tsw %s, -%d($30)' % (reg, program_variables[tac_code.dest]["offset"])
-            # dest_reg = _reg(reg)
+            if is_temp(src1):
+                reg = self.address_des[src1]
+            elif is_glo_var(src1):
+                if src1 in self.address_des.keys():
+                    reg = self.address_des[src1]
+                else:
+                    reg = self.getreg(tac_code)
+                    self.load_var_in_reg(src1, program_variables[src1]["type"], reg)
+            else:
+                reg = self.getreg(tac_code)
+                var_type = program_variables[tac_code.dest]["type"]
+                self.load_constant_in_reg(tac_code.src1, var_type, reg)
+            self.mips_code += '\n\tsw %s, -%d($30)' % (reg, program_variables[tac_code.dest]["offset"])
+            dest_reg = _reg(reg)
         
         elif tac_code.op == 'func_param':
             if int(tac_code.src1) < 5:

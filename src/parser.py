@@ -997,7 +997,7 @@ class CParser:
                                | ID
                                | '(' declarator ')'
        '''
-        p[0] = Node(name='func_direct_declarator')
+        p[0] = Node(name='func_direct_declarator_init')
         if(len(p) == 2):
             p[0].value = p[1]
             p[0].idName = p[1]
@@ -1018,6 +1018,7 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[2], p[4]]
         else:
             p[0].children = p[0].children+[p[1], p[3]]
+            
 
     def p_direct_declarator_1(self, p):
         '''direct_declarator    : ID
@@ -1045,6 +1046,7 @@ class CParser:
         elif(len(p) == 6):
             p[0].children = p[0].children+[p[1], p[2], p[4]]
         else:
+            p[0].value=p[3].value
             p[0].children = p[0].children+[p[1], p[3]]
 
     def p_pointer(self, p):
@@ -1606,15 +1608,17 @@ class CParser:
                 "dataTypes": {}
             }
             if(p[2].children[1].children[0].name=="type_specifier"):
+                pass
                 symbolTable[p[0].idName]["func_parameters"]["arguments"][root.children[1].idName] = root.children[0].type
             else:
                 node=root
-                while(not isinstance(node,str) and node.name=='parameter_list'):
-                    symbolTable[p[0].idName]["func_parameters"]["arguments"][node.children[1].idName] = node.children[1].type
+                # while(not isinstance(node,str) and node.name=='parameter_list'):
+                    # symbolTable[p[0].idName]["func_parameters"]["arguments"][node.children[1].idName] = node.children[1].type
                     # add_arguments(p,tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=0,global_stack=global_stack,entry_node=symbolTable[p[0].idName]["func_parameters"])
                     
-                    node=node.children[0]
-                symbolTable[p[0].idName]["func_parameters"]["arguments"][node.idName] = node.type
+                    # node=node.children[0]
+                # symbolTable[p[0].idName]["func_parameters"]["arguments"][node.idName] = node.type
+            add_arguments(p,p[2].children[1],global_node,global_stack,p[2].children[0].idName,0)
         except:
             symbolTable[p[0].idName] = {
                 "func_parameters": {
