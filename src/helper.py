@@ -69,7 +69,13 @@ def check_func_not_def(var):
         return False
     return True
 
+def check_func_redef(var):
+    if var in symbolTable:
+        return True
+    return False
+    
 def get_var_type(var, global_stack, global_node):
+    
     if var in global_node["variables"]:
         return global_node["variables"][var]["type"]
     try:

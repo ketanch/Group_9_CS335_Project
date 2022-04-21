@@ -5,5 +5,6 @@ int f(){
     ;
 }
 int main(){
+    func();
     ;
 }

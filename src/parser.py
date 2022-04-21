@@ -170,6 +170,16 @@ class CParser:
             emit(dest=p[1].idName, src1='', op='gotofunc', src2='')
         elif(len(p) == 4):
             # label=create_new_label()
+            if check_func_not_def(p[1].idName):
+                pr_error("Function %s cannot be called as function is not defined at line %d" % (p[1].idName, p.lineno(1)))
+            elif check_variable_func_conflict(p[1].idName, symbolTable):
+                pr_error("Function %s not defined at line %d" % (p[1].idName, p.lineno(1)))
+            p[0].children = p[0].children+[p[1], p[3]]
+            cond,n=True,0
+            try:
+                cond,n=check_no_of_arguments_mismatch(symbolTable[p[1].idName]["func_parameters"]["number_args"],p[3])
+            except:
+                return
             if((symbolTable[p[1] if isinstance(p[1],str) else p[1].idName]["func_parameters"]["number_args"])):
                 pr_error("Expected %d arguments for function : %s at line number : %d" % ((symbolTable[p[1] if isinstance(p[1],str) else p[1].idName]["func_parameters"]["number_args"]),p[1] if isinstance(p[1],str) else p[1].idName,p.lineno(1)))
             if check_func_not_def(p[1].idName):
@@ -1568,6 +1578,8 @@ class CParser:
     def p_function_definition_init(self, p):
         '''function_definition_init : declaration_specifiers func_declarator'''
         global global_node
+        if check_func_redef(p[2].idName):
+            pr_error("Function %s redefined at line %d"%(p[2].idName,p.lineno(1)))
         p[0] = Node(name='function_definition_init',type=p[1].type, idName=p[2].idName)
 
         # If there are arguments
@@ -1622,7 +1634,8 @@ class CParser:
     def p_function_definition(self, p):
         '''function_definition  : function_definition_init ';'  MARKER2
                                | function_definition_init compound_statement MARKER2 
-       '''
+        '''
+        
         p[0] = Node(name='function_definition',type=p[1].type, idName=p[1].idName)
         if(len(p)==4):
             if(p[2]==';'):
