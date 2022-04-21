@@ -181,7 +181,16 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             if(type.endswith('int') and child.type.endswith('int')):
                 pass
             elif(type!=child.type):
-                pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+                if child.children[2].name!='initializer':
+                    pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+                else:
+                    t_node=child.children[2].children[0]
+                    while t_node.name=="initializer_list":
+                        if(t_node.children[1].type!=type):
+                            pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+                        t_node=t_node.children[0]
+                    if(t_node.type!=type):
+                        pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
         program_variables["1gvar_" + str(var_global_ctr)] = global_node["variables"][child.idName]
         var_global_ctr += 1
         #adding struct elements in var
@@ -275,7 +284,16 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
         if(type.endswith('int') and tmp_node.type.endswith('int')):
             pass
         elif(type!=tmp_node.type):
-            pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+            if tmp_node.children[2].name!='initializer':
+                pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+            else:
+                t_node=tmp_node.children[2].children[0]
+                while t_node.name=="initializer_list":
+                    if(t_node.children[1].type!=type):
+                        pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+                    t_node=t_node.children[0]
+                if(t_node.type!=type):
+                    pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
         
 
 def add_struct_element(p,struct_name,tmp_node,type,qualifier_list,global_node):

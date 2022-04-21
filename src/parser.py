@@ -8,7 +8,6 @@ from classes import *
 from symbolTab import *
 import json
 from helper import *
-
 var_cnt = 0
 label_cnt = 0
 switch_label = []
@@ -48,6 +47,7 @@ class CParser:
     #reserved = CLexer.reserved
 
     precedence = (
+        # ('nonassoc','PID'),
         ('left', 'LOGIC_OR'),
         ('left', 'LOGIC_AND'),
         ('left', '|'),
@@ -57,7 +57,8 @@ class CParser:
         ('left', '>', 'COMP_GTEQ', '<', 'COMP_LTEQ'),
         ('left', 'BIT_RIGHT', 'BIT_LEFT'),
         ('left', '+', '-'),
-        ('left', '*', '/', '%')
+        ('left', '*', '/', '%'),
+        # ('nonassoc','MAN')
     )
 
     def p_primary_expression_1(self, p):
@@ -291,6 +292,22 @@ class CParser:
         except:
             pass
 
+    def p_postfix_expression_6(self, p):
+        '''postfix_expression   : PRINTF '(' ID ')'
+                                | SCANF '(' ID ')'
+                                | PRINTF '(' constant ')'
+        '''
+        p[0] = Node(name='postfix_expression')
+        p[0].children = p[0].children+[p[1], p[3]]
+        if(not isinstance(p[3],str)):
+            emit(dest='', src1=p[3].idName if p[3].idName!='' else p[3].value, op=p[1], src2=p[3].type)
+        else:
+            if check_variable_not_def(p[3],global_stack,global_node):
+                pr_error("Variable %s not defined at line no. %d"%(p[3],p.lineno(1)))
+            type=get_var_type(p[3],global_stack,global_node)
+            emit(dest='', src1=p[3], op=p[1], src2=type)
+
+
     def p_argument_expression_list(self, p):
         '''argument_expression_list : assignment_expression
                                    | argument_expression_list ',' assignment_expression
@@ -368,15 +385,14 @@ class CParser:
         p[0].value=p[2].idName
 
     def p_unary_expression_4(self, p):
-        '''unary_expression : SIZEOF unary_expression
-                           | SIZEOF '(' type_name ')'
+        '''unary_expression : SIZEOF '(' ID ')'
        '''
-        p[0] = Node(name='unary_expression')
-        if((len(p) == 3)):
-            p[0].idName = p[2].idName
-            p[0].children = p[0].children+[p[1], p[2]]
-        else:
-            p[0].children = p[0].children+[p[1], p[3]]
+        p[0] = Node(name='unary_expression',type='int')
+        id_type=get_var_type(p[3],global_stack,global_node)
+        p[0].value=get_data_type_size(id_type,global_node,global_stack)
+        p[0].idName=p[0].value
+        print(p[0].value)
+        p[0].children = p[0].children+[p[1], p[3]]
 
     def p_unary_operator(self, p):
         '''unary_operator   : '&'
@@ -1540,9 +1556,6 @@ class CParser:
     def p_external_declaration(self, p):
         '''external_declaration : declaration
                                | function_definition
-                               | '#' DEFINE ID constant
-                               | '#' DEFINE ID CONST_STRING
-                               | '#' DEFINE ID '(' identifier_list ')' '(' expression ')'
        '''
         p[0] = Node(name='external_declaration')
         if(len(p) == 2):

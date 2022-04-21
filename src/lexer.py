@@ -17,14 +17,9 @@ class CLexer:
         'volatile': 'VOLATILE',
         'printf': 'PRINTF',
         'scanf': 'SCANF',
-        'fprintf': 'FPRINTF',
-        'fscanf': 'FSCANF',
-        'fopen': 'FOPEN',
-        'fclose': 'FCLOSE',
         'main': 'MAIN',
         'true': 'TRUE',
         'false': 'FALSE',
-        'file': 'FILE',
 
         # keywords for condtionals
         'if': 'IF', 'else': 'ELSE', 'break': 'BREAK', 'continue': 'CONTINUE',
@@ -42,7 +37,7 @@ class CLexer:
         'struct': 'STRUCT', 'union': 'UNION',
 
         # Math functions
-        'exp': 'EXP', 'floor': 'FLOOR', 'ceil': 'CEIL', 'abs': 'ABS', 'pow': 'POW', 'sizeof': 'SIZEOF',
+        'sizeof': 'SIZEOF',
 
         # define for macro
         'define': 'DEFINE'
@@ -72,9 +67,6 @@ class CLexer:
 
         # Unary_Operators
         'ADDU', 'SUBU',
-
-        # Reference and dereference operators ( single and double pointers)
-        'DOUBLE_POINT',
 
         # Member access Expressions
         'MEMB_ACCESS'
@@ -121,7 +113,6 @@ class CLexer:
     # t_BIT_LOGIC_NOT = r'~'
 
     # 3.1.8 - 3.1.10
-    t_DOUBLE_POINT = r'\*\*'
     t_MEMB_ACCESS = r'->'
 
     literals = '+-*/%&,?.{}()#[];:=<>~|^!'

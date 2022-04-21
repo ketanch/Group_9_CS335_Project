@@ -46,31 +46,24 @@
 # }
 
 symbolTable={
-    # "predefined_functions":{
-    #     "printf":{
-    #         "func_paramenters":{
-    #             "number_args":100,
-    #             "arguments":{
-    #                 0:'char*',
-    #                 1:'int'
-    #             },
-    #             "return_type":'int',
-    #             "scope":0
-    #         },
-    #         "variables":{}
-    #     },
-    #     "scanf":{
-    #         "func_paramenters":{
-    #             "number_args":100,
-    #             "arguments":{
-    #                 0:'char*',
-    #                 1:'int'
-    #             },
-    #             "return_type":'int',
-    #             "scope":0
-    #         },
-    #         "variables":{}
-    #     },
+        "printf":{
+            "func_paramenters":{
+                "number_args":1,
+                "arguments":{},
+                "return_type":'int',
+                "scope":0
+            },
+            "variables":{}
+        },
+        "scanf":{
+            "func_paramenters":{
+                "number_args":1,
+                "arguments":{},
+                "return_type":'int',
+                "scope":0
+            },
+            "variables":{}
+        },
     #     "fprintf":{
     #         "func_paramenters":{
     #             "number_args":100,
@@ -188,7 +181,6 @@ symbolTable={
     #         },
     #         "variables":{}
     #     },
-    # },
     "variables":{},
     "dataTypes":{}
 }
