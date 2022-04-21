@@ -1,9 +1,7 @@
-int func(int a) {
-    return 9;
-}
+int b=34+32;
+int a=b+65;
+
 
 int main() {
-    int a=1*2;
-    int b=b+2;
-    int a=4+5+6+3+5+9;
+    int a,b,c,d,e,f;
 }

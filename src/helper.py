@@ -358,9 +358,18 @@ def add_struct_elements_in_var(global_stack,global_node,node):
     
 def check_no_of_arguments_mismatch(n, node):
     counter=1
+    original_node=node
     while not isinstance(node,str) and len(node.children) != 0 :
         node=node.children[0]
         counter+=1
+
+    tmp_count=counter
+    while not isinstance(original_node,str) and len(original_node.children) != 0 :
+        emit(dest=original_node.children[1].idName if original_node.children[1].idName!='' else original_node.children[1].value,src1=str(tmp_count),op='func_param',src2='')
+        original_node=original_node.children[0]
+        tmp_count-=1
+    emit(dest=node.idName if node.idName!='' else node.value,src1=str(tmp_count),op='func_param',src2='')
+    
     if counter == n:
         return False, counter
     return True, counter
