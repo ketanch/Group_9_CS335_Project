@@ -2,6 +2,7 @@ from symbolTab import tac_code, var_global_ctr, program_variables, global_tac_co
 from code_gen import byte_align, get_data_type_size
 from symbolTab import global_node, global_stack
 from code_gen import TACInstruction
+import json
 
 def emit(dest, src1, op, src2):
     # if len(tac_code) > 1 and tac_code[-2][2].startswith('post_'):
@@ -174,7 +175,6 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             if(type.endswith('int') and child.type.endswith('int')):
                 pass
             elif(type!=child.type):
-                print(child.value)
                 pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
         program_variables["1gvar_" + str(var_global_ctr)] = global_node["variables"][child.idName]
         var_global_ctr += 1
@@ -266,7 +266,6 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             tmp_node.type=get_var_type(tmp_node.children[2].idName,global_stack,global_node)
         if len(tmp_node.children)==3 and tmp_node.children[2].name =='unary_expression':
             tmp_node.type=get_var_type(tmp_node.value,global_stack,global_node)
-            print(tmp_node.idName,tmp_node.type)
         if(type.endswith('int') and tmp_node.type.endswith('int')):
             pass
         elif(type!=tmp_node.type):
@@ -408,7 +407,7 @@ def check_arguments_type_mismatch(func_entry, node):
     while not isinstance(node,str) and len(node.children) != 0 :
         type_given=get_var_type(node.children[1].idName,global_stack=global_stack,global_node=global_node)
         if type_given=="Not Defined":
-            type_given=node.children[n-1-counter].type
+            type_given=node.children[1].type
         if func_entry["func_parameters"]["arguments"][argument_list_name[n-1-counter]] != type_given:
             return True
         node=node.children[0]
@@ -436,15 +435,16 @@ def check_is_array(var,global_node,global_stack):
         return global_node["variables"][var]["array"]
     for i in range(len(global_stack)-1, -1, -1):
         if var in global_stack[i]["variables"]:
-            return global_node["variables"][var]["array"]
+            return global_stack[i]["variables"][var]["array"]
     return False
 
 def check_is_struct(var,global_node,global_stack):
     if var in global_node["variables"]:
         return global_node["variables"][var]["struct"]
+
     for i in range(len(global_stack)-1, -1, -1):
         if var in global_stack[i]["variables"]:
-            return global_node["variables"][var]["struct"]
+            return global_stack[i]["variables"][var]["struct"]
     return False
 
 def check_type_mismatch(type1,type2):
@@ -473,7 +473,6 @@ def add_arguments(p,tmp_node,type,qualifier_list,global_node,isStruct,global_sta
     global var_global_ctr
     prev_node=tmp_node
     ctr = 0
-    print(tmp_node.name)
     while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
         ctr += 1
         child=tmp_node.children[1]
@@ -500,7 +499,6 @@ def add_arguments(p,tmp_node,type,qualifier_list,global_node,isStruct,global_sta
             if(type.endswith('int') and child.type.endswith('int')):
                 pass
             elif(type!=child.type):
-                print(child.name,child.type)
                 pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
         program_variables["1gvar_" + str(var_global_ctr)] = global_node["variables"][child.idName]
         var_global_ctr += 1

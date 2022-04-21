@@ -150,7 +150,7 @@ class CParser:
             elif check_variable_func_conflict(p[1].idName, symbolTable):
                 pr_error("Function %s not defined at line %d" % (p[1].idName, p.lineno(1)))
             p[0].children = p[0].children+[p[1], p[3]]
-            emit(dest=p[1].idName, src1='', op='gotofunc', src2='')
+            
             # emit(dest=label,src1='',op='label',src2='')
             # return_stack.append(label)
             if(p[1] != '('):
@@ -165,9 +165,9 @@ class CParser:
                     pr_error("Type mismatch in function : %s at line : %d"%(p[1].idName, p.lineno(1)))
                 try:
                     p[0].type=symbolTable[p[1].idName if p[1].idName!="" else p[1].value]["func_parameters"]["return_type"]
-                    print(p[0].type)
                 except:
                     pass
+            emit(dest=p[1].idName, src1='', op='gotofunc', src2='')
         elif(len(p) == 4):
             # label=create_new_label()
             if((symbolTable[p[1] if isinstance(p[1],str) else p[1].idName]["func_parameters"]["number_args"])):
@@ -182,7 +182,6 @@ class CParser:
             # return_stack.append(label)
             try:
                 p[0].type=symbolTable[p[1].idName if p[1].idName!="" else p[1].value]["func_parameters"]["return_type"]
-                print(p[0].type)
             except:
                 pass
 
@@ -814,6 +813,8 @@ class CParser:
             # if(check_type_mismatch(p[1].type,p[3].type)):
             #     pr_error("Type mismatch in line %d"%(p.lineno(1)))
             emit(gvar1,gvar2, "store", "")
+            if len(global_stack)==0 and p[3].name!='constant':
+                pr_error("Only constants allowed in global declaration")
           
     def p_type_specifier_1(self, p):
         '''type_specifier   : VOID
@@ -1191,9 +1192,9 @@ class CParser:
         else:
             p[0] = p[1]
 
-    def p_initializer_2(self, p):
-        '''initializer  : '{' '}' '''
-        p[0] = Node(name='initializer')
+    # def p_initializer_2(self, p):
+    #     '''initializer  : '{' '}' '''
+    #     p[0] = Node(name='initializer')
 
     def p_initializer_list(self, p):
         '''initializer_list : initializer
@@ -1247,8 +1248,7 @@ class CParser:
         p[0] = label
 
     def p_compound_statement(self, p):
-        '''compound_statement   : '{' '}'
-                               | '{' block_item_list '}'
+        '''compound_statement   : '{' block_item_list '}'
        '''
         p[0] = Node(name='compound_statement')
         p[0].children = p[0].children+[p[2]]
@@ -1599,7 +1599,6 @@ class CParser:
                 node=root
                 while(not isinstance(node,str) and node.name=='parameter_list'):
                     symbolTable[p[0].idName]["func_parameters"]["arguments"][node.children[1].idName] = node.children[1].type
-                    print(node.name)
                     # add_arguments(p,tmp_node=p[2],type=p[1].type,qualifier_list=p[1].qualifier_list,global_node=global_node,isStruct=0,global_stack=global_stack,entry_node=symbolTable[p[0].idName]["func_parameters"])
                     
                     node=node.children[0]
