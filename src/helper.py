@@ -284,8 +284,12 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
         if(type.endswith('int') and tmp_node.type.endswith('int')):
             pass
         elif(type!=tmp_node.type):
+            
             if tmp_node.children[2].name!='initializer':
-                pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+                if tmp_node.children[2].name!='unary_expression':
+                    pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
+                elif type!='int':
+                    pr_error("Type mismatch at line no. %d" %(p.lineno(1)))
             else:
                 t_node=tmp_node.children[2].children[0]
                 while t_node.name=="initializer_list":
@@ -552,7 +556,6 @@ def add_arguments(p,tmp_node,global_node,global_stack,func_name,isStruct):
         tmp_node=tmp_node.children[0]  
     if tmp_node.idName in current_seen_arguments:
         pr_error("Argument %s redclaration at line %d"%(tmp_node.idName,p.lineno(1)))
-    # print(json.dumps(symbolTable))
         
     symbolTable[func_name]["func_parameters"]["arguments"][tmp_node.idName]={
         "type":tmp_node.type,

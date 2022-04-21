@@ -306,7 +306,12 @@ class CParser:
                 pr_error("Variable %s not defined at line no. %d"%(p[3],p.lineno(1)))
             type=get_var_type(p[3],global_stack,global_node)
             emit(dest='', src1=p[3], op=p[1], src2=type)
-
+    def p_postfix_expression_7(self, p):
+        '''postfix_expression   : PRINTF '(' CONST_STRING ')'
+        '''
+        p[0] = Node(name='postfix_expression')
+        p[0].children = p[0].children+[p[1], p[3]]
+        emit(dest='', src1=p[3], op=p[1], src2='str')
 
     def p_argument_expression_list(self, p):
         '''argument_expression_list : assignment_expression
@@ -391,7 +396,6 @@ class CParser:
         id_type=get_var_type(p[3],global_stack,global_node)
         p[0].value=get_data_type_size(id_type,global_node,global_stack)
         p[0].idName=p[0].value
-        print(p[0].value)
         p[0].children = p[0].children+[p[1], p[3]]
 
     def p_unary_operator(self, p):
@@ -1733,7 +1737,7 @@ class CParser:
         # for i in global_tac_code:
         #     print(i.print())
         gen_var_offset(symbolTable)
-        variable_optimize(tac_code)
+        # variable_optimize(tac_code)
         for ind, i in enumerate(tac_code):
             print(ind, end = ' - ')
             i.print()
@@ -1741,7 +1745,7 @@ class CParser:
         self.generate_dot()
         print(json.dumps(symbolTable,indent=4))
         #print(json.dumps(program_variables,indent=4))
-        generate_final_code(tac_code)
+        # generate_final_code(tac_code)
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'
