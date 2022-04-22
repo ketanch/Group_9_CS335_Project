@@ -62,8 +62,11 @@ def check_variable_not_def(var, global_stack, global_node):
     for i in range(len(global_stack)-1, -1, -1):
         if var in global_stack[i]["variables"]:
             return False
-    if var in global_node["func_parameters"]["arguments"].keys():
-        return False
+    try:
+        if var in global_node["func_parameters"]["arguments"].keys():
+            return False
+    except:
+        pass
     return True
 def check_func_not_def(var):
     if var in symbolTable:
@@ -511,15 +514,25 @@ def check_type_mismatch(type1,type2):
     return False
 
 def check_is_element_of_struct(struct,var,global_node,global_stack):
-    
     try:
         if var in global_node["variables"][struct]["elements"]:
             return True
     except:
         pass
+    try:
+        if var in global_node["func_parameters"]["arguments"][struct]["elements"]:
+            return True
+    except:
+        pass
     for i in range(len(global_stack)-1, -1, -1):
+       
         try:
             if var in global_stack[i]["variables"][struct]["elements"]:
+                return True
+        except:
+            pass
+        try:
+            if var in global_stack[i]["func_parameters"]["arguments"][struct]["elements"]:
                 return True
         except:
             pass
@@ -555,8 +568,11 @@ def add_arguments(p,tmp_node,global_node,global_stack,func_name,isStruct):
         }
         
         #adding struct elements in var
-        if(isStruct):
-            add_struct_elements_in_var(global_stack,global_node,symbolTable[func_name]["func_parameters"]["arguments"][child.idName])
+        try:
+            if(isStruct):
+                add_struct_elements_in_var(global_stack,global_node,symbolTable[func_name]["func_parameters"]["arguments"][child.idName])
+        except:
+            symbolTable[func_name]["func_parameters"]["arguments"][child.idName]["struct"]=0
 
         # checking for const,unsigned,volatile
         for quality in child.qualifier_list:
@@ -588,8 +604,11 @@ def add_arguments(p,tmp_node,global_node,global_stack,func_name,isStruct):
     
     
     #adding struct elements in var
-    if(isStruct):
-        add_struct_elements_in_var(global_stack,global_node,symbolTable[func_name]["func_parameters"]["arguments"][tmp_node.idName])
+    try:
+        if(isStruct):
+            add_struct_elements_in_var(global_stack,global_node,symbolTable[func_name]["func_parameters"]["arguments"][tmp_node.idName])
+    except:
+        symbolTable[func_name]["func_parameters"]["arguments"][tmp_node.idName]["struct"]=0
 
     # checking for const,unsigned,volatile
     for quality in tmp_node.qualifier_list:

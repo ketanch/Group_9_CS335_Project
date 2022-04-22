@@ -1,9 +1,10 @@
-//Data type check
-#define INT_MAX 1000000000 
-int main(){
-    int a = 5;
-    a = b + 4;
-    int x = 5;
-    x = b * 7;
-    return 0;
+void pass(int a , int b , int c , int d , int e , int f , int g , int h , int i , int j)
+{
+    return ;
+}
+int main()
+{
+    int a = 1, b = 1, c = 1, d = 1, e = 1, f = 1, g = 1, h = 1, i = 1, j = 1 ;
+    pass(a , b , c , d , e , f , g , h, i , j) ;
+    return 0 ;
 }

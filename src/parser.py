@@ -66,9 +66,10 @@ class CParser:
                                | CONST_STRING  
        '''
         p[0] = Node(name='primary_expression', value=p[1], idName=p[1])
-        var_data = get_var_data(p[1], global_stack, global_node)
-        if var_data != None:
-            p[0].type = var_data["type"]
+        try:
+            p[0].type = get_var_type(p[1], global_stack, global_node)
+        except:
+            pass
         
 
         if check_variable_not_def(p[0] if isinstance(p[0],str) else p[0].idName, global_stack, global_node) and  check_variable_func_conflict(p[0] if isinstance(p[0],str) else p[0].idName, symbolTable) and check_func_not_def(p[0] if isinstance(p[0],str) else p[0].idName):
@@ -274,6 +275,7 @@ class CParser:
 
     def p_postfix_expression_5(self, p):
         '''postfix_expression   : postfix_expression '[' constant ']'
+                                
         '''
         p[0] = Node(name='postfix_expression')
         p[0].children = p[0].children+[p[1], p[3]]
@@ -284,6 +286,12 @@ class CParser:
             size=p[1].type
         else:
             size=var_data["type"]
+        # try:
+        #     t=get_var_type(p[3],global_stack,global_node)
+        #     if(t!='int'):
+        #         pr_error("Only int allowed in array access at line no. %d"%(p.lineno(1)))
+        # except:
+        #     pass
         type_size = get_data_type_size(size, global_node, global_stack)
         emit(tmp_var1, p[3].value, '*', str(type_size))
         tmp_var2 = create_new_var()
@@ -294,7 +302,7 @@ class CParser:
             p[0].type=get_var_type(p[1].idName,global_stack,global_node)
             index=int(p[3].value)
             size=get_array_size(p[1].idName,global_node,global_stack)
-            if index<0 or index>=size:
+            if (index<0 or index>=size) and not size==0:
                 pr_error("Segmentation fault at line no. %d"%(p.lineno(1)))
         except:
             
@@ -560,8 +568,8 @@ class CParser:
         else:
             tmp_var = create_new_var()
 
-            gvar1 = glo_subs(p[1].idName)
-            gvar2 = glo_subs(p[3].idName)
+            gvar1 = glo_subs(p[1].idName,global_stack,global_node)
+            gvar2 = glo_subs(p[3].idName,global_stack,global_node)
             if(check_type_mismatch(p[1].type,p[3].type)):
                 pr_error("Type mismatch in line %d"%(p.lineno(1)))
             if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
@@ -588,8 +596,8 @@ class CParser:
                 pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
-            gvar1 = glo_subs(p[1].idName)
-            gvar2 = glo_subs(p[3].idName)
+            gvar1 = glo_subs(p[1].idName,global_stack,global_node)
+            gvar2 = glo_subs(p[3].idName,global_stack,global_node)
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].type=p[1].type
@@ -607,8 +615,8 @@ class CParser:
         else:
             tmp_var = create_new_var()
 
-            gvar1 = glo_subs(p[1].idName)
-            gvar2 = glo_subs(p[3].idName)
+            gvar1 = glo_subs(p[1].idName,global_stack,global_node)
+            gvar2 = glo_subs(p[3].idName,global_stack,global_node)
             if(check_type_mismatch(p[1].type,p[3].type)):
                 pr_error("Type mismatch in line %d"%(p.lineno(1)))
             if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
@@ -630,8 +638,8 @@ class CParser:
         else:
             tmp_var = create_new_var()
 
-            gvar1 = glo_subs(p[1].idName)
-            gvar2 = glo_subs(p[3].idName)
+            gvar1 = glo_subs(p[1].idName,global_stack,global_node)
+            gvar2 = glo_subs(p[3].idName,global_stack,global_node)
             if(check_type_mismatch(p[1].type,p[3].type)):
                 pr_error("Type mismatch in line %d"%(p.lineno(1)))
             if(check_is_struct(p[1].idName,global_node,global_stack) or check_is_struct(p[3].idName,global_node,global_stack)):
@@ -658,8 +666,8 @@ class CParser:
                 pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
-            gvar1 = glo_subs(p[1].idName)
-            gvar2 = glo_subs(p[3].idName)
+            gvar1 = glo_subs(p[1].idName,global_stack,global_node)
+            gvar2 = glo_subs(p[3].idName,global_stack,global_node)
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].type=p[1].type
@@ -681,8 +689,8 @@ class CParser:
                 pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
-            gvar1 = glo_subs(p[1].idName)
-            gvar2 = glo_subs(p[3].idName)
+            gvar1 = glo_subs(p[1].idName,global_stack,global_node)
+            gvar2 = glo_subs(p[3].idName,global_stack,global_node)
 
             emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
             p[0].type=p[1].type
@@ -1539,9 +1547,12 @@ class CParser:
                 emit(dest=continue_label_stack[-1], src1='', op='goto', src2='')
         elif len(p) == 4:
             p[0].children = p[0].children+[p[1], p[2]]
-            ret_type = global_node["func_parameters"]["return_type"].lower()
-            if ret_type.upper() not in ret_type_check[p[2].type.upper()]:
-                pr_error("Return type mismatch at line %d. Function return type is %s whereas returning %s" % (p.lineno(0), ret_type, p[2].type.lower()))
+            try:
+                ret_type = global_node["func_parameters"]["return_type"].lower()
+                if ret_type.upper() not in ret_type_check[p[2].type.upper()]:
+                    pr_error("Return type mismatch at line %d. Function return type is %s whereas returning %s" % (p.lineno(0), ret_type, p[2].type.lower()))
+            except:
+                pass
             #label=return_stack.pop()
             tmp = glo_subs(p[2].idName, global_stack, global_node)
             if(p[2].idName == ''):
@@ -1553,9 +1564,12 @@ class CParser:
        '''
         p[0] = Node(name='jump_statement')
         p[0].value = p[1]
-        ret_type = global_node["func_parameters"]["return_type"].lower()
-        if 'void' != ret_type:
-            pr_error("Return type mismatch at line %d. Function return type is %s whereas returning void" % (p.lineno(0), ret_type))
+        try:
+            ret_type = global_node["func_parameters"]["return_type"].lower()
+            if 'void' != ret_type:
+                pr_error("Return type mismatch at line %d. Function return type is %s whereas returning void" % (p.lineno(0), ret_type))
+        except:
+            pass
 
     def p_translation_unit(self, p):
         '''translation_unit : external_declaration
@@ -1645,7 +1659,7 @@ class CParser:
                     
                     # node=node.children[0]
                 # symbolTable[p[0].idName]["func_parameters"]["arguments"][node.idName] = node.type
-            add_arguments(p,p[2].children[1],global_node,global_stack,p[2].children[0].idName,0)
+            add_arguments(p,p[2].children[1],global_node,global_stack,p[2].children[0].idName,1)
         except:
             symbolTable[p[0].idName] = {
                 "func_parameters": {
