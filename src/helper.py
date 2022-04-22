@@ -256,7 +256,7 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
     if(len(tmp_node.children)==2):
         
         global_node["variables"][tmp_node.idName]["array"]=1
-        global_node["variables"][tmp_node.idName]["size"]=tmp_node.children[1].value        
+        global_node["variables"][tmp_node.idName]["size"]=int(tmp_node.children[1].value)        
     if(len(tmp_node.children)==3):
         if len(tmp_node.children):
             if len(tmp_node.children[0].children) and tmp_node.children[0].children[0].name=='pointer':
@@ -410,7 +410,7 @@ def add_struct_elements_in_var(global_stack,global_node,node):
             struct_node=global_stack[i]["dataTypes"][name]  
     node["elements"]=struct_node  
     
-def check_no_of_arguments_mismatch(n, node):
+def check_no_of_arguments_mismatch(n, node,global_node, global_stack):
     counter=1
     original_node=node
     while not isinstance(node,str) and len(node.children) != 0 :
@@ -419,10 +419,10 @@ def check_no_of_arguments_mismatch(n, node):
 
     tmp_count=counter
     while not isinstance(original_node,str) and len(original_node.children) != 0 :
-        emit(dest=original_node.children[1].idName if original_node.children[1].idName!='' else original_node.children[1].value,src1=str(tmp_count),op='func_param',src2='')
+        emit(dest=glo_subs(original_node.children[1].idName, global_stack, global_node) if original_node.children[1].idName!='' else original_node.children[1].value,src1=str(tmp_count),op='func_param',src2='')
         original_node=original_node.children[0]
         tmp_count-=1
-    emit(dest=node.idName if node.idName!='' else node.value,src1=str(tmp_count),op='func_param',src2='')
+    emit(dest=glo_subs(node.idName, global_stack, global_node) if node.idName!='' else node.value,src1=str(tmp_count),op='func_param',src2='')
     
     if counter == n:
         return False, counter
@@ -585,8 +585,4 @@ def add_arguments(p,tmp_node,global_node,global_stack,func_name,isStruct):
                 symbolTable[func_name]["func_parameters"]["arguments"][tmp_node.idName]["type"]+='0ptr'
         else:
             symbolTable[func_name]["func_parameters"]["arguments"][tmp_node.idName]["array"]=1
-            symbolTable[func_name]["func_parameters"]["arguments"][tmp_node.idName]["size"]=tmp_node.children[1].value
-
-            
-    
-    
+            symbolTable[func_name]["func_parameters"]["arguments"][tmp_node.idName]["size"]=int(tmp_node.children[1].value)

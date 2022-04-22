@@ -157,7 +157,7 @@ class CParser:
             if(p[1] != '('):
                 cond,n=True,0
                 try:
-                    cond,n=check_no_of_arguments_mismatch(symbolTable[p[1].idName]["func_parameters"]["number_args"],p[3])
+                    cond,n=check_no_of_arguments_mismatch(symbolTable[p[1].idName]["func_parameters"]["number_args"],p[3],global_node,global_stack)
                 except:
                     return
                 if cond :
@@ -178,7 +178,7 @@ class CParser:
             p[0].children = p[0].children+[p[1], p[3]]
             cond,n=True,0
             try:
-                cond,n=check_no_of_arguments_mismatch(symbolTable[p[1].idName]["func_parameters"]["number_args"],p[3])
+                cond,n=check_no_of_arguments_mismatch(symbolTable[p[1].idName]["func_parameters"]["number_args"],p[3], global_node, global_stack)
             except:
                 return
             if((symbolTable[p[1] if isinstance(p[1],str) else p[1].idName]["func_parameters"]["number_args"])):
@@ -305,7 +305,7 @@ class CParser:
             if check_variable_not_def(p[3],global_stack,global_node):
                 pr_error("Variable %s not defined at line no. %d"%(p[3],p.lineno(1)))
             type=get_var_type(p[3],global_stack,global_node)
-            emit(dest='', src1=p[3], op=p[1], src2=type)
+            emit(dest='', src1=glo_subs(p[3], global_stack, global_node), op=p[1], src2=type)
     def p_postfix_expression_7(self, p):
         '''postfix_expression   : PRINTF '(' CONST_STRING ')'
         '''
@@ -1732,20 +1732,20 @@ class CParser:
             exit(1)
         print("Parsing completed successfully")
         # for i in tac_code:
-        #     print(i.print())
+        #     i.print()
         # print("GlobalTAC code:")
-        # for i in global_tac_code:
-        #     print(i.print())
+        #for i in global_tac_code:
+        #    print(i.print())
         gen_var_offset(symbolTable)
-        # variable_optimize(tac_code)
+        variable_optimize(tac_code)
         for ind, i in enumerate(tac_code):
             print(ind, end = ' - ')
             i.print()
         self.generate_dot_ast(result)
         self.generate_dot()
-        print(json.dumps(symbolTable,indent=4))
+        #print(json.dumps(symbolTable,indent=4))
         #print(json.dumps(program_variables,indent=4))
-        # generate_final_code(tac_code)
+        generate_final_code(tac_code)
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'
