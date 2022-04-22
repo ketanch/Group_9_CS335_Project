@@ -1,3 +1,4 @@
+from audioop import tomono
 from symbolTab import tac_code, var_global_ctr, program_variables, global_tac_code,symbolTable
 from code_gen import byte_align, get_data_type_size
 from symbolTab import global_node, global_stack
@@ -80,7 +81,7 @@ def get_var_type(var, global_stack, global_node):
         return global_node["variables"][var]["type"]
     try:
         if var in global_node["func_parameters"]["arguments"]:
-            return global_node["func_parameters"]["arguments"][var]
+            return global_node["func_parameters"]["arguments"][var]["type"]
     except:
         pass
     for i in range(len(global_stack)-1, -1, -1):
@@ -155,6 +156,8 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
     while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
         ctr += 1
         child=tmp_node.children[1]
+        if(child.name=="direct_declarator" and child.array_list=="error"):
+            pr_error("Array size missing in %s at line no. %d"%(child.idName,p.lineno(1)))  
         if check_variable_func_conflict(child.idName, symbolTable):
             pr_error("Function name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
         if check_variable_dataType_conflict(child.idName, global_node,global_stack):
@@ -207,6 +210,8 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
             else:
                 global_node["variables"][child.idName]["array"]=1
                 global_node["variables"][child.idName]["size"]=int(child.children[1].value)
+                if(int(child.children[1].value)<0):
+                    pr_error("Negative indices not allowed in array declaration at line no. %d"%(p.lineno(1)))
         if(len(child.children)==3):
             if len(child.children):
                 if len(child.children[0].children) and child.children[0].children[0].name=='pointer':
@@ -220,9 +225,11 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
                     global_node["variables"][child.idName]["array"]=1
                     global_node["variables"][child.idName]["size"]=len(child.children[2].array_list)
                     global_node["variables"][child.idName]["value"]=child.children[2].array_list
-        
+                    
         prev_node=child
-        tmp_node=tmp_node.children[0]    
+        tmp_node=tmp_node.children[0]  
+    if(tmp_node.name=="direct_declarator" and tmp_node.array_list=="error"):
+        pr_error("Array size missing in %s at line no. %d"%(tmp_node.idName,p.lineno(1)))  
     if check_variable_func_conflict(tmp_node.idName, symbolTable):
         pr_error("Function name %s is being redefined as identifier at line = %d" % (p[0].idName, p.lineno(0)))
     if check_variable_dataType_conflict(tmp_node.idName, global_node,global_stack):
@@ -256,7 +263,9 @@ def add_var(p,tmp_node,type,qualifier_list,global_node,isStruct,global_stack):
     if(len(tmp_node.children)==2):
         
         global_node["variables"][tmp_node.idName]["array"]=1
-        global_node["variables"][tmp_node.idName]["size"]=int(tmp_node.children[1].value)        
+        global_node["variables"][tmp_node.idName]["size"]=int(tmp_node.children[1].value)
+        if(int(tmp_node.children[1].value)<0):
+            pr_error("Negative indices not allowed in array declaration at line no. %d"%(p.lineno(1)))
     if(len(tmp_node.children)==3):
         if len(tmp_node.children):
             if len(tmp_node.children[0].children) and tmp_node.children[0].children[0].name=='pointer':
@@ -306,6 +315,8 @@ def add_struct_element(p,struct_name,tmp_node,type,qualifier_list,global_node):
     while(len(tmp_node.children) == 2 and tmp_node != None and tmp_node.name != "direct_declarator"):
         ctr += 1
         child=tmp_node.children[1]
+        if(child.name=="direct_declarator" and child.array_list=="error"):
+            pr_error("Array size missing in %s at line no. %d"%(child.idName,p.lineno(1)))
         if check_variable_redefined_struct(child.idName,global_node["dataTypes"][struct_name]):
             pr_error("Struct element redefined at line = %d" % (p.lineno(1)))
         global_node["dataTypes"][struct_name][child.idName]={
@@ -334,6 +345,8 @@ def add_struct_element(p,struct_name,tmp_node,type,qualifier_list,global_node):
             else:
                 global_node["dataTypes"][struct_name][child.idName]["array"]=1
                 global_node["dataTypes"][struct_name][child.idName]["size"]=int(child.children[1].value)
+                if(int(child.children[1].value)<0):
+                    pr_error("Negative indices not allowed in array declaration at line no. %d"%(p.lineno(1)))
         if(len(child.children)==3):
             global_node["dataTypes"][struct_name][child.idName]["array"]=1
             global_node["dataTypes"][struct_name][child.idName]["size"]=len(child.children[2].array_list)
@@ -353,6 +366,8 @@ def add_struct_element(p,struct_name,tmp_node,type,qualifier_list,global_node):
         var_data["offset"] = offset
         offset += tlen
         global_node["dataTypes"][struct_name]["1size"] = offset
+    if(tmp_node.name=="direct_declarator" and tmp_node.array_list=="error"):
+        pr_error("Array size missing in %s at line no. %d"%(tmp_node.idName,p.lineno(1)))
     if check_variable_redefined_struct(tmp_node.idName,global_node["dataTypes"][struct_name]):
         pr_error("Struct element redefined at line = %d" % (p.lineno(1)))
     if(tmp_node.name=='pointer'):
@@ -385,7 +400,9 @@ def add_struct_element(p,struct_name,tmp_node,type,qualifier_list,global_node):
         global_node["dataTypes"][struct_name][tmp_node.idName][quality]=1
     if(len(tmp_node.children)==2):
         global_node["dataTypes"][struct_name][tmp_node.idName]["array"]=1
-        global_node["dataTypes"][struct_name][tmp_node.idName]["size"]=int(tmp_node.children[1].value)        
+        global_node["dataTypes"][struct_name][tmp_node.idName]["size"]=int(tmp_node.children[1].value)      
+        if(int(global_node["dataTypes"][struct_name][tmp_node.idName]["size"])<0):
+            pr_error("Negative indices not allowed in array declaration at line no. %d"%(p.lineno(1)))  
     if(len(tmp_node.children)==3):
             global_node["dataTypes"][struct_name][tmp_node.idName]["array"]=1
             global_node["dataTypes"][struct_name][tmp_node.idName]["size"]=len(tmp_node.children[2].array_list)
@@ -586,3 +603,20 @@ def add_arguments(p,tmp_node,global_node,global_stack,func_name,isStruct):
         else:
             symbolTable[func_name]["func_parameters"]["arguments"][tmp_node.idName]["array"]=1
             symbolTable[func_name]["func_parameters"]["arguments"][tmp_node.idName]["size"]=int(tmp_node.children[1].value)
+def get_array_size(var,global_node,global_stack):
+    if var in global_node["variables"]:
+        return global_node["variables"][var]["size"]
+    try:
+        if var in global_node["func_parameters"]["arguments"]:
+            return global_node["func_parameters"]["arguments"][var]["size"]
+    except:
+        pass
+    for i in range(len(global_stack)-1, -1, -1):
+        try:
+            if var in global_stack[i]["func_parameters"]["arguments"]:
+                return global_stack[i]["func_parameters"]["arguments"][var]["size"]
+        except:
+            pass
+        if var in global_stack[i]["variables"]:
+            return global_stack[i]["variables"][var]["size"]
+    return -1

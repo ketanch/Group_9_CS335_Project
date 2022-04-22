@@ -12,14 +12,12 @@ class CLexer:
         # Other
         'signed': 'SIGNED',
         'unsigned': 'UNSIGNED',
-        'bool': 'BOOL',
         'const': 'CONST',
         'volatile': 'VOLATILE',
         'printf': 'PRINTF',
         'scanf': 'SCANF',
         'main': 'MAIN',
-        'true': 'TRUE',
-        'false': 'FALSE',
+
 
         # keywords for condtionals
         'if': 'IF', 'else': 'ELSE', 'break': 'BREAK', 'continue': 'CONTINUE',
@@ -39,8 +37,6 @@ class CLexer:
         # Math functions
         'sizeof': 'SIZEOF',
 
-        # define for macro
-        'define': 'DEFINE'
     }
 
     # Adding tokens
@@ -157,10 +153,6 @@ class CLexer:
         #t.value = int(t.value, 2)
         return t
     
-    # def t_CONST_BOOL(self, t):
-    #     r'true|false'
-    #     #t.value = int(t.value, 2)
-    #     return t
 
     def t_CONST_INT(self, t):
         r'\d+'

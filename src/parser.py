@@ -95,8 +95,12 @@ class CParser:
 
     def p_constant_1(self, p):
         '''constant : CONST_INT
-       '''
-        p[0] = Node(name='constant', value=p[1], type='int')
+                    | '-' CONST_INT
+        '''
+        if(len(p)==2):
+            p[0] = Node(name='constant', value=p[1], type='int')
+        else:
+            p[0] = Node(name='constant', value='-'+p[2], type='int')
 
     def p_constant_2(self, p):
         '''constant : CONST_CHAR
@@ -105,33 +109,28 @@ class CParser:
 
     def p_constant_3(self, p):
         '''constant : CONST_FLOAT
+                    | '-' CONST_FLOAT
        '''
-        p[0] = Node(name='constant', value=p[1], type='float')
+        if(len(p)==2):
+            p[0] = Node(name='constant', value=p[1], type='float')
+        else:
+            p[0] = Node(name='constant', value='-'+p[2], type='float')
 
     def p_constant_4(self, p):
         '''constant : CONST_HEX
-       '''
+        '''
         p[0] = Node(name='constant', value=int(p[1], 16), type='int')
 
     def p_constant_5(self, p):
         '''constant : CONST_OCT
-       '''
+        '''
         p[0] = Node(name='constant', value=int(p[1], 8), type='int')
 
     def p_constant_6(self, p):
         '''constant : CONST_BIN
-       '''
+        '''
         p[0] = Node(name='constant', value=int(p[1], 2), type='int')
 
-    def p_constant_7(self, p):
-        '''constant : TRUE
-       '''
-        p[0] = Node(name='constant', value=p[1], type='bool')
-
-    def p_constant_8(self, p):
-        '''constant : FALSE  
-       '''
-        p[0] = Node(name='constant', value=p[1], type='bool')
 
     def p_postfix_expression_1(self, p):
         '''postfix_expression   : primary_expression
@@ -150,6 +149,8 @@ class CParser:
                 pr_error("Function %s cannot be called as function is not defined at line %d" % (p[1].idName, p.lineno(1)))
             elif check_variable_func_conflict(p[1].idName, symbolTable):
                 pr_error("Function %s not defined at line %d" % (p[1].idName, p.lineno(1)))
+            else:
+                p[0].type=symbolTable[p[1].idName]["func_parameters"]["return_type"]
             p[0].children = p[0].children+[p[1], p[3]]
             
             # emit(dest=label,src1='',op='label',src2='')
@@ -175,6 +176,8 @@ class CParser:
                 pr_error("Function %s cannot be called as function is not defined at line %d" % (p[1].idName, p.lineno(1)))
             elif check_variable_func_conflict(p[1].idName, symbolTable):
                 pr_error("Function %s not defined at line %d" % (p[1].idName, p.lineno(1)))
+            else:
+                p[0].type=symbolTable[p[1].idName]["func_parameters"]["return_type"]
             p[0].children = p[0].children+[p[1], p[3]]
             cond,n=True,0
             try:
@@ -289,8 +292,14 @@ class CParser:
         p[0].idName = tmp_var2
         try:
             p[0].type=get_var_type(p[1].idName,global_stack,global_node)
+            index=int(p[3].value)
+            size=get_array_size(p[1].idName,global_node,global_stack)
+            if index<0 or index>=size:
+                pr_error("Segmentation fault at line no. %d"%(p.lineno(1)))
         except:
+            
             pass
+
 
     def p_postfix_expression_6(self, p):
         '''postfix_expression   : PRINTF '(' ID ')'
@@ -854,7 +863,6 @@ class CParser:
                            | LONG
                            | CHAR
                            | SHORT
-                           | BOOL
                            | LONG_LONG
        '''
         p[0] = Node(name='type_specifier', type=p[1], value=p[1])
@@ -1061,6 +1069,8 @@ class CParser:
         p[0] = Node(name='direct_declarator', idName=p[1].idName)
         if(len(p) == 4):
             p[0] = p[1]
+            if(p[2]=='['):
+                p[0].array_list="error"
             #if p[2] == '[':
             #    pr_error("JODD ho kya")
         elif(len(p) == 6):
@@ -1529,9 +1539,9 @@ class CParser:
                 emit(dest=continue_label_stack[-1], src1='', op='goto', src2='')
         elif len(p) == 4:
             p[0].children = p[0].children+[p[1], p[2]]
-            # ret_type = global_node["func_parameters"]["return_type"].lower()
-            # if ret_type.upper() not in ret_type_check[p[2].type.upper()]:
-                # pr_error("Return type mismatch at line %d. Function return type is %s whereas returning %s" % (p.lineno(0), ret_type, p[2].type.lower()))
+            ret_type = global_node["func_parameters"]["return_type"].lower()
+            if ret_type.upper() not in ret_type_check[p[2].type.upper()]:
+                pr_error("Return type mismatch at line %d. Function return type is %s whereas returning %s" % (p.lineno(0), ret_type, p[2].type.lower()))
             #label=return_stack.pop()
             tmp = glo_subs(p[2].idName, global_stack, global_node)
             if(p[2].idName == ''):
@@ -1737,15 +1747,15 @@ class CParser:
         #for i in global_tac_code:
         #    print(i.print())
         gen_var_offset(symbolTable)
-        variable_optimize(tac_code)
+        # variable_optimize(tac_code)
         for ind, i in enumerate(tac_code):
             print(ind, end = ' - ')
             i.print()
         self.generate_dot_ast(result)
         self.generate_dot()
-        #print(json.dumps(symbolTable,indent=4))
+        print(json.dumps(symbolTable,indent=4))
         #print(json.dumps(program_variables,indent=4))
-        generate_final_code(tac_code)
+        # generate_final_code(tac_code)
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'
