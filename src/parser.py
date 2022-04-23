@@ -296,7 +296,7 @@ class CParser:
         emit(tmp_var1, p[3].value, '*', str(type_size))
         tmp_var2 = create_new_var()
         gvar = glo_subs(p[1].idName, global_stack, global_node)
-        emit(tmp_var2, gvar, '+', tmp_var1)
+        emit(tmp_var2, gvar, '+addr', tmp_var1)
         p[0].idName = tmp_var2
         try:
             p[0].type=get_var_type(p[1].idName,global_stack,global_node)
@@ -576,7 +576,7 @@ class CParser:
                 pr_error("%s on struct is not allowed"%(p[2]))
             if(check_is_array(p[1].idName,global_node,global_stack) or check_is_array(p[3].idName,global_node,global_stack)):
                 pr_error("%s on array is not allowed"%(p[2]))
-            emit(tmp_var, gvar1, p[2] + str(p[1].type), gvar2)
+            emit(tmp_var, gvar1 if gvar1!="" else p[1].value, p[2] + str(p[1].type), gvar2 if gvar2!="" else p[3].value)
             p[0].type=p[1].type
             p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2], p[3]]

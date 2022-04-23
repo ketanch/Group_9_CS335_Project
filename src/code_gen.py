@@ -1,3 +1,4 @@
+from audioop import mul
 from symbolTab import program_variables, symbolTable, global_tac_code
 
 data_type_size = {
@@ -321,11 +322,11 @@ class MIPSGenerator:
 
     def push(self, reg):
         self.mips_code += '\n\tsw %s, -4($29)\
-                           \n\taddi $29, $29, -4' % (reg)
+                           \n\taddiu $29, $29, -4' % (reg)
     
     def pop(self, reg):
         self.mips_code += '\n\tlw %s, 0($29)\
-                           \n\taddi $29, $29, 4' % (reg)
+                           \n\taddiu $29, $29, 4' % (reg)
 
     def syscall(self, code):
         self.mips_code += '\n\tli $v0, %d\n\tsyscall' % (code)
@@ -457,7 +458,7 @@ class MIPSGenerator:
         if type == "int":
             self.mips_code += '\n\tli %s, %s' % (reg, const)
         elif type == "char":
-            self.mips_code += '\n\taddi %s, $0, 0\n\taddi %s, $0, %s' % (reg, reg, const)
+            self.mips_code += '\n\tli %s, %s' % (reg, const)
         elif type == "float":
             label = self.add_float_to_data(float(const))
             self.mips_code += '\n\tlwc1 %s, %s' % (reg, label)
@@ -469,7 +470,15 @@ class MIPSGenerator:
         if type == "int":
             self.mips_code += '\n\tlw %s, -%d($30)' % (reg, program_variables[var]["offset"])
         elif type == "char":
-            self.mips_code += '\n\taddi %s, $0, $0\n\tlb %s, -%d($30)' % (reg, reg, program_variables[var]["offset"])
+            cmd = "lb"
+            if program_variables[var]["unsigned"]:
+                cmd = "lbu"
+            self.mips_code += '\n\taddi %s, $0, $0\n\t%s %s, -%d($30)' % (reg, cmd, reg, program_variables[var]["offset"])
+        elif type == "short":
+            cmd = "lh"
+            if program_variables[var]["unsigned"]:
+                cmd = "lhu"
+            self.mips_code += '\n\taddi %s, $0, $0\n\t%s %s, -%d($30)' % (reg, cmd, reg, program_variables[var]["offset"])
         elif type == "float":
             self.mips_code += '\n\tlwc1 %s, -%d($30)' % (reg, program_variables[var]["offset"])
         
@@ -479,7 +488,7 @@ class MIPSGenerator:
         src2_reg = None
         dest_reg = None
 
-        if tac_code.op in ['+int', '*int']:
+        if tac_code.op in ['+int', '*int', '/int', '-int']:
             op = tac_code.op
             src1_dec = tac_code.src1.isdecimal()
             src2_dec = tac_code.src2.isdecimal()
@@ -489,26 +498,46 @@ class MIPSGenerator:
                 src2_reg = self.prepare_reg(tac_code.src2)
             dest_reg = self.getreg(tac_code)
             if src1_dec and src2_dec:
-                self.mips_code += '\n\taddi %s, $0, %s' % (dest_reg, int(tac_code.src1) + int(tac_code.src2))
+                if op == "+int":
+                    res = int(tac_code.src1) + int(tac_code.src2)
+                elif op == "*int":
+                    res = int(tac_code.src1) * int(tac_code.src2)
+                elif op == "/int":
+                    res = int(tac_code.src1) // int(tac_code.src2)
+                elif op == "-int":
+                    res = int(tac_code.src1) - int(tac_code.src2)
+                self.load_constant_in_reg(res, "int", dest_reg)
             elif src1_dec:
                 if op == '+int':
                     self.mips_code += '\n\taddi %s, %s, %s' % (dest_reg, src2_reg, tac_code.src1)
-                elif op == '*int':
+                elif op in ['*int', '/int']:
                     src1_reg = self.getreg()
                     self.load_constant_in_reg(tac_code.src1, "int", src1_reg)
-                    self.mips_code += '\n\tmul %s, %s, %s' % (dest_reg, src2_reg, src1_reg)
+                    if op == "*int":
+                        cmd = "mul"
+                    elif op == "/int":
+                        cmd = "div"
+                    self.mips_code += '\n\t%s %s, %s, %s' % (cmd, dest_reg, src2_reg, src1_reg)
             elif src2_dec:
                 if op == '+int':
                     self.mips_code += '\n\taddi %s, %s, %s' % (dest_reg, src1_reg, tac_code.src2)
-                elif op == '*int':
+                elif op in ['*int', '/int']:
                     src2_reg = self.getreg()
                     self.load_constant_in_reg(tac_code.src2, "int", src2_reg)
-                    self.mips_code += '\n\tmul %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
+                    if op == "*int":
+                        cmd = "mul"
+                    elif op == "/int":
+                        cmd = "div"
+                    self.mips_code += '\n\t%s %s, %s, %s' % (cmd, dest_reg, src1_reg, src2_reg)
             else:
                 if op == '+int':
                     self.mips_code += '\n\taddu %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
-                elif op == '*int':
-                    self.mips_code += '\n\tmul %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
+                elif op == ['*int', '/int']:
+                    if op == "*int":
+                        cmd = "mul"
+                    elif op == "/int":
+                        cmd = "div"
+                    self.mips_code += '\n\t%s %s, %s, %s' % (cmd, dest_reg, src1_reg, src2_reg)
             
         #Done
         elif tac_code.op == 'gotofunc':
@@ -640,6 +669,7 @@ class MIPSGenerator:
                     raise SyntaxError
         
         self.update_desc(tac_code, src1_reg, src2_reg, dest_reg)
+        print(self.address_des)
 
     def final_code(self):
         return self.data_code + '\n\n\t.text' + self.mips_code
