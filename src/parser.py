@@ -1,4 +1,6 @@
 from pprint import pprint
+
+from numpy import isin
 from code_gen import gen_var_offset, generate_final_code, variable_optimize
 import ply.yacc as yacc
 from lexer import *
@@ -278,7 +280,7 @@ class CParser:
 
     def p_postfix_expression_5(self, p):
         '''postfix_expression   : postfix_expression '[' constant ']'
-                                
+                                | postfix_expression '[' ID ']'      
         '''
         p[0] = Node(name='postfix_expression')
         p[0].children = p[0].children+[p[1], p[3]]
@@ -296,7 +298,12 @@ class CParser:
         # except:
         #     pass
         type_size = get_data_type_size(size, global_node, global_stack)
-        emit(tmp_var1, p[3].value, '*int', str(type_size))
+        if isinstance(p[3],str):
+            tmp_name = glo_subs(p[3],global_stack,global_node)
+            type_var = get_var_type(p[3],global_stack,global_node)
+            if type_var != 'int':
+                pr_error("Index of an array can only be integer at line no. %d"%(p.lineno(0)))
+        emit(tmp_var1, tmp_name if isinstance(p[3],str) else p[3].value  , '*int', str(type_size))
         tmp_var2 = create_new_var()
         gvar = glo_subs(p[1].idName, global_stack, global_node)
         emit(tmp_var2, gvar, "mem", "")
@@ -410,6 +417,7 @@ class CParser:
         p[0].children = p[0].children+[p[1], p[2]]
         p[0].idName = tmp_var
         p[0].value=p[2].idName
+        p[0].type=get_var_type(p[2].idName,global_stack,global_node)
 
     def p_unary_expression_4(self, p):
         '''unary_expression : SIZEOF '(' ID ')'
@@ -721,7 +729,7 @@ class CParser:
             p[0] = p[1]
             
         else:
-            if check_type_mismatch(p[1].type,p[3].type):
+            if check_type_mismatch(p[1].type if not p[1].type.endswith("0ptr") else p[1].type[:-4],p[3].type if not p[3].type.endswith("0ptr") else p[3].type[:-4]):
                 pr_error("Type mismatch at line no. %d"%(p.lineno(1)))
             if check_if_const_changed(p[1] if isinstance(p[1],str) else p[1].idName, global_node ,global_stack):
                 pr_error("Tried to change constant %s at line = %d" % (p[1].idName, p.lineno(0)))
