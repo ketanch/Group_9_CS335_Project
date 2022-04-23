@@ -153,7 +153,8 @@ def get_str(var):
         return False
 
 def variable_optimize(block):
-    for i in block:
+    for ind, i in enumerate(block):
+        print(ind, end = ' - ')
         i.print()
     #symTab = {i.dest: {"state": "dead"} for i in block if is_temp(i.dest)}
     symTab = {}
@@ -174,7 +175,7 @@ def variable_optimize(block):
                 statement_data[i]["reuse"].append(ins.src1)
             symTab[ins.src1]["state"] = "live"
             symTab[ins.src1]["next_use"] = i
-        elif is_glo_var(ins.src1):
+        elif is_glo_var(ins.src1) and ins.op != "mem":
             if symTab[ins.src1].get("next_use", None) == None:
                 symTab[ins.src1]["next_use"] = i
         if is_temp(ins.src2):
@@ -186,26 +187,33 @@ def variable_optimize(block):
             if symTab[ins.src2].get("next_use", None) == None:
                 symTab[ins.src2]["next_use"] = i
         if is_temp(ins.dest):
-            symTab[ins.dest]["state"] = "dead"
+            if ins.op == "store" or ins.op == "mem":
+                symTab[ins.dest]["next_use"] = symTab[ins.dest].get("next_use", i)
+                if symTab[ins.dest]["state"] == "dead":
+                    statement_data[i]["reuse"].append(ins.dest)
+            else:
+                symTab[ins.dest]["state"] = "dead"
     for ind,i in enumerate(block):
+        #print(ind)
+        if i.op == '':
+            continue
         if i.src1 in symTab.keys():
-            if symTab[i.src1]["next_use"] != ind:
-                i.next_use["src1"] = symTab[i.src1]["next_use"]
+            if (i.op != "mem" or (i.op == "mem" and not is_glo_var(i.src1))) and symTab[i.src1]["next_use"] != ind:
+                if symTab[i.src1]["next_use"] != ind:
+                    i.next_use["src1"] = symTab[i.src1]["next_use"]
         if i.src2 in symTab.keys():
             if symTab[i.src2]["next_use"] != ind:
                 i.next_use["src2"] = symTab[i.src2]["next_use"]
-        if i.dest in symTab.keys():
-            #print(symTab[i.dest], i.dest)
-            #nuse = symTab[i.dest].get("next_use", None)
-            #print(nuse, i.op)
-            #if nuse == None and i.op == "store":
-            #    pass
-            #else:
-            i.next_use["dest"] = symTab[i.dest]["next_use"]
+        if i.dest in symTab.keys():# and (i.op == "mem" and not is_glo_var(i.dest)) and i.op != '':
+            if symTab[i.dest]["next_use"] != ind:
+                i.next_use["dest"] = symTab[i.dest]["next_use"]
     var_map = {i:i for i in symTab.keys()}
     reuse_var = []
     for i in range(len(block)):
+        #print(i, end = '')
         if is_temp(block[i].dest):
+            #if block[i].dest in reuse_var:
+            #print("DDDDDDDDDDDdd", block[i].dest, var_map[block[i].dest])
             block[i].dest = var_map[block[i].dest]
         if is_temp(block[i].src1):
             block[i].src1 = var_map[block[i].src1]
@@ -217,11 +225,14 @@ def variable_optimize(block):
         reuse_var = sorted(reuse_var, key = lambda x:int(x.strip('__var_')))
         if len(reuse_var) == 0:
             continue
-        if is_temp(block[i].dest):
+        if is_temp(block[i].dest) and block[i].op != "store":
             var_map[block[i].dest] = reuse_var[0]
             reuse_var += [block[i].dest]
             block[i].dest = reuse_var[0]
             reuse_var = reuse_var[1:]
+        #block[i].print()
+        #print(var_map)
+        #print(reuse_var)
     return block
 
 #variable_optimize(block)
@@ -393,6 +404,12 @@ class MIPSGenerator:
                 reg = self.free_regs("fpr")
                 return "$f" + str(reg)
 
+    def free_reg(self, reg):
+        reg = reg.strip('$')
+        self.caller_saved.append(int(reg))
+        self.caller_saved.sort()
+        self.register_des[reg] = None
+
     def prepare_reg(self, var, type = "int"):
         reg = None
         if var in self.address_des.keys():
@@ -481,7 +498,10 @@ class MIPSGenerator:
             self.mips_code += '\n\taddi %s, $0, $0\n\t%s %s, -%d($30)' % (reg, cmd, reg, program_variables[var]["offset"])
         elif type == "float":
             self.mips_code += '\n\tlwc1 %s, -%d($30)' % (reg, program_variables[var]["offset"])
-        
+    
+    def load_var_addr_in_reg(self, var, reg):
+        off = program_variables[var]["offset"]
+        self.mips_code += '\n\taddiu %s, $30, -%d' % (reg, off)    
 
     def tac_to_mips(self, tac_code, symTab):
         src1_reg = None
@@ -580,15 +600,11 @@ class MIPSGenerator:
         elif tac_code.op == 'store':
             src1 = tac_code.src1
             reg = None
-            var_type = program_variables[tac_code.dest]["type"]
             reg = self.prepare_reg(src1, var_type)
-            if is_glo_var(src1) and src1 not in self.address_des.keys():
-                self.load_var_in_reg(src1, var_type, reg)
-                # self.load_var_in_reg(src1, program_variables[src1]["type"], reg)
-            # elif is_constant(src1):
-            #     reg = self.getreg()
-            #     var_type = program_variables[tac_code.dest]["type"]
-            #     self.load_constant_in_reg(tac_code.src1, var_type, reg)
+            if is_temp(tac_code.dest):
+                self.mips_code += ""
+            else:
+                var_type = program_variables[tac_code.dest]["type"]
             store_cmd = "sw"
             if var_type == "float":
                 store_cmd += "c1"
@@ -668,8 +684,15 @@ class MIPSGenerator:
                 else:
                     raise SyntaxError
         
+        elif tac_code.op == "mem":
+            if not is_glo_var(tac_code.src1):
+                raise SyntaxError
+            dest_reg = self.getreg()
+            self.load_var_addr_in_reg(tac_code.src1, dest_reg)
+        
         self.update_desc(tac_code, src1_reg, src2_reg, dest_reg)
         print(self.address_des)
+        #print(self.mips_code)
 
     def final_code(self):
         return self.data_code + '\n\n\t.text' + self.mips_code

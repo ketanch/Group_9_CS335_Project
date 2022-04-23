@@ -260,15 +260,18 @@ class CParser:
         if(p[2]=='->' and t[-4:]!='0ptr'):
             pr_error('%s is not a pointer; did you mean to use "." ? in line number %d' % (p[1].idName, p.lineno(1)))
         if p[2] == '.':
-            tmp_var = create_new_var()
+            tmp_var1 = create_new_var()
+            tmp_var2 = create_new_var()
             gvar = glo_subs(p[1].idName, global_stack, global_node)
             offset=0
             if not flg:
                 offset = program_variables[gvar]["elements"][p[3]]["offset"]
-            emit(tmp_var, gvar, '+', str(offset))
-            p[0].idName = tmp_var
+            emit(tmp_var1, gvar, "mem", "")
+            emit(tmp_var2, tmp_var1, '+int', str(offset))
+            p[0].idName = tmp_var2
         type_element=get_var_type_struct_element(p[1].idName,p[3],global_stack,global_node)
-        p[0].idName=p[1].idName+p[2]+p[3]
+        #tmp_var2 = create_new_var()
+        p[0].idName=tmp_var2
         p[0].type=type_element
         
 
@@ -293,11 +296,13 @@ class CParser:
         # except:
         #     pass
         type_size = get_data_type_size(size, global_node, global_stack)
-        emit(tmp_var1, p[3].value, '*', str(type_size))
+        emit(tmp_var1, p[3].value, '*int', str(type_size))
         tmp_var2 = create_new_var()
         gvar = glo_subs(p[1].idName, global_stack, global_node)
-        emit(tmp_var2, gvar, '+addr', tmp_var1)
-        p[0].idName = tmp_var2
+        emit(tmp_var2, gvar, "mem", "")
+        tmp_var3 = create_new_var()
+        emit(tmp_var3, tmp_var2, '+int', tmp_var1)
+        p[0].idName = tmp_var3
         try:
             p[0].type=get_var_type(p[1].idName,global_stack,global_node)
             index=int(p[3].value)
@@ -1761,15 +1766,15 @@ class CParser:
         #for i in global_tac_code:
         #    print(i.print())
         gen_var_offset(symbolTable)
-        # variable_optimize(tac_code)
+        variable_optimize(tac_code)
         for ind, i in enumerate(tac_code):
             print(ind, end = ' - ')
             i.print()
         self.generate_dot_ast(result)
         self.generate_dot()
-        print(json.dumps(symbolTable,indent=4))
+        #print(json.dumps(symbolTable,indent=4))
         #print(json.dumps(program_variables,indent=4))
-        # generate_final_code(tac_code)
+        generate_final_code(tac_code)
 
     def generate_dot(self):
         dot_data = 'digraph DFA {\n'
