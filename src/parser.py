@@ -730,7 +730,7 @@ class CParser:
             p[0].value = p[3].value
             gvar1 = glo_subs(p[1] if isinstance(p[1],str) else p[1].idName, global_stack, global_node)
             gvar2 = glo_subs(p[3].idName, global_stack, global_node)
-            emit(gvar1, gvar2 if p[3].idName!='' else p[3].value, "store", "")
+            emit(gvar1, gvar2 if p[3].idName!='' else p[3].value, "store", p[3].type)
 
     def p_assignment_operator(self, p):
         '''assignment_operator  : '='

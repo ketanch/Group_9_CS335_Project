@@ -9,7 +9,8 @@ int main() {
     p.y = 8;
     //struct point *q;
     //q->y=5;
-    int r;
-    int *s = &r;
-    *s = 5;
+    //int r;
+    //int *s = &r;
+    //*s = 5;
+    //print(a[4]);
 }

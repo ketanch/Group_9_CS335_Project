@@ -153,9 +153,9 @@ def get_str(var):
         return False
 
 def variable_optimize(block):
-    for ind, i in enumerate(block):
-        print(ind, end = ' - ')
-        i.print()
+    #for ind, i in enumerate(block):
+        #print(ind, end = ' - ')
+        #i.print()
     #symTab = {i.dest: {"state": "dead"} for i in block if is_temp(i.dest)}
     symTab = {}
     for i in block:
@@ -600,17 +600,20 @@ class MIPSGenerator:
         elif tac_code.op == 'store':
             src1 = tac_code.src1
             reg = None
-            reg = self.prepare_reg(src1, var_type)
             if is_temp(tac_code.dest):
-                self.mips_code += ""
+                var_type = tac_code.src2
             else:
                 var_type = program_variables[tac_code.dest]["type"]
+            reg = self.prepare_reg(src1, var_type)
             store_cmd = "sw"
             if var_type == "float":
                 store_cmd += "c1"
             elif var_type == "char":
                 store_cmd = "sb"
-            self.mips_code += '\n\t%s %s, -%d($30)' % (store_cmd, reg, program_variables[tac_code.dest]["offset"])
+            if is_temp(tac_code.dest):
+                self.mips_code += "\n\t%s %s, 0(%s)" % (store_cmd, reg, self.address_des[tac_code.dest])
+            else:
+                self.mips_code += '\n\t%s %s, -%d($30)' % (store_cmd, reg, program_variables[tac_code.dest]["offset"])
             dest_reg = _reg(reg)
         
         elif tac_code.op == 'func_param':
@@ -691,7 +694,7 @@ class MIPSGenerator:
             self.load_var_addr_in_reg(tac_code.src1, dest_reg)
         
         self.update_desc(tac_code, src1_reg, src2_reg, dest_reg)
-        print(self.address_des)
+        #print(self.address_des)
         #print(self.mips_code)
 
     def final_code(self):
@@ -704,7 +707,7 @@ def generate_final_code(emit_arr):
     mips_gen.process_global_data(global_tac_code)
     ctr = 0
     for i in emit_arr:
-        print(ctr)
+        #print(ctr)
         ctr += 1
         mips_gen.tac_to_mips(i, symbolTable)
     print(mips_gen.final_code())
