@@ -153,10 +153,9 @@ def get_str(var):
         return False
 
 def variable_optimize(block):
-    #for ind, i in enumerate(block):
-        #print(ind, end = ' - ')
-        #i.print()
-    #symTab = {i.dest: {"state": "dead"} for i in block if is_temp(i.dest)}
+    for ind, i in enumerate(block):
+        print(ind, end = ' - ')
+        i.print()
     symTab = {}
     for i in block:
         if is_temp(i.dest):
@@ -194,7 +193,7 @@ def variable_optimize(block):
             else:
                 symTab[ins.dest]["state"] = "dead"
     for ind,i in enumerate(block):
-        #print(ind)
+        print(ind)
         if i.op == '':
             continue
         if i.src1 in symTab.keys():
@@ -424,7 +423,7 @@ class MIPSGenerator:
         else:
             val = get_str(var)
             if is_temp(var):
-                print("Temp variables should be in reg")
+                print("Temp variables should be in reg", var)
                 raise SyntaxError
             elif is_constant(var) or val:
                 if get_str(var):
@@ -448,26 +447,34 @@ class MIPSGenerator:
             self.register_des[rdest.strip('$')] = ins.dest
             if ins.dest in self.address_des:
                 self.register_des[self.address_des[ins.dest]] = None
+                if is_fpr(rdest):
+                    self.fp_regs.append(int(rdest.strip('$f')))
+                    self.fp_regs.sort()
+                else:
+                    self.caller_saved.append(int(self.address_des[ins.dest]))
+                    self.caller_saved.sort()
             self.address_des[ins.dest] = rdest.strip('$')
-        if rsrc1 != None and ins.next_use["src1"] == None and ins.src1 != ins.dest:
-            self.register_des[rsrc1] = None
-            if is_fpr(rsrc1):
-                self.fp_regs.append(int(rsrc1.strip('$f')))
-                self.fp_regs.sort()
-            else:
-                self.caller_saved.append(int(rsrc1.strip('$')))
-                self.caller_saved.sort()
-            if not is_constant(ins.src1):
+        if rsrc1 != None and ins.next_use["src1"] == None:
+            if rsrc1 != rdest:
+                self.register_des[rsrc1] = None
+                if is_fpr(rsrc1):
+                    self.fp_regs.append(int(rsrc1.strip('$f')))
+                    self.fp_regs.sort()
+                else:
+                    self.caller_saved.append(int(rsrc1.strip('$')))
+                    self.caller_saved.sort()
+            if not is_constant(ins.src1) and ins.src1 != ins.dest:
                 self.address_des.pop(ins.src1)
-        if rsrc2 != None and ins.next_use["src2"] == None and ins.src1 != ins.src2 and ins.src2 != ins.dest:
-            self.register_des[rsrc2] = None
-            if is_fpr(rsrc2):
-                self.fp_regs.append(int(rsrc2.strip('$f')))
-                self.fp_regs.sort()
-            else:
-                self.caller_saved.append(int(rsrc2.strip('$')))
-                self.caller_saved.sort()
-            if not is_constant(ins.src2):
+        if rsrc2 != None and ins.next_use["src2"] == None and ins.src1 != ins.src2:
+            if rsrc2 != rdest:
+                self.register_des[rsrc2] = None
+                if is_fpr(rsrc2):
+                    self.fp_regs.append(int(rsrc2.strip('$f')))
+                    self.fp_regs.sort()
+                else:
+                    self.caller_saved.append(int(rsrc2.strip('$')))
+                    self.caller_saved.sort()
+            if not is_constant(ins.src2) and ins.src2 != ins.dest:
                 self.address_des.pop(ins.src2)
         #print("des2", self.address_des)
 
@@ -552,7 +559,7 @@ class MIPSGenerator:
             else:
                 if op == '+int':
                     self.mips_code += '\n\taddu %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
-                elif op == ['*int', '/int']:
+                elif op in ['*int', '/int']:
                     if op == "*int":
                         cmd = "mul"
                     elif op == "/int":
@@ -611,7 +618,7 @@ class MIPSGenerator:
             elif var_type == "char":
                 store_cmd = "sb"
             if is_temp(tac_code.dest):
-                self.mips_code += "\n\t%s %s, 0(%s)" % (store_cmd, reg, self.address_des[tac_code.dest])
+                self.mips_code += "\n\t%s %s, 0($%s)" % (store_cmd, reg, self.address_des[tac_code.dest])
             else:
                 self.mips_code += '\n\t%s %s, -%d($30)' % (store_cmd, reg, program_variables[tac_code.dest]["offset"])
             dest_reg = _reg(reg)
@@ -692,10 +699,27 @@ class MIPSGenerator:
                 raise SyntaxError
             dest_reg = self.getreg()
             self.load_var_addr_in_reg(tac_code.src1, dest_reg)
+
+        elif tac_code.op == "storeval":
+            if not is_temp(tac_code.dest):
+                raise SyntaxError
+            if is_glo_var(tac_code.src1):
+                var_type = program_variables[tac_code.src1]["type"]
+            else:
+                var_type = tac_code.src2
+            reg2 = self.prepare_reg(tac_code.src1, var_type)
+            dest_reg = self.getreg()
+            self.mips_code += '\n\taddu %s, $0, %s' % (dest_reg, reg2)            
         
+        #print('------------------')
+        print(self.address_des)
+        print(self.caller_saved)
         self.update_desc(tac_code, src1_reg, src2_reg, dest_reg)
-        #print(self.address_des)
-        #print(self.mips_code)
+        print(self.mips_code)
+        print(self.address_des)
+        print(self.caller_saved)
+        print('------------------')
+
 
     def final_code(self):
         return self.data_code + '\n\n\t.text' + self.mips_code

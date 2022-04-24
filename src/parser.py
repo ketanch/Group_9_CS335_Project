@@ -221,10 +221,10 @@ class CParser:
             pr_error("Invalid decrement operation at line = %d" % (p.lineno(1)))
             return
         gvar = gvar["global_var"]
-        emit(tmp_var1, gvar, '', '')
+        emit(tmp_var1, gvar, 'storeval', '')
         emit(tmp_var2, gvar, '-' + str(p[1].type), '1')
         p[0].type=p[1].type
-        emit(gvar, tmp_var2, '', '')
+        emit(gvar, tmp_var2, 'store', '')
         p[0].idName = tmp_var1
 
     def p_postfix_expression_3(self, p):
@@ -240,10 +240,10 @@ class CParser:
             pr_error("Invalid increment operation at line = %d" % (p.lineno(1)))
             return
         gvar = gvar["global_var"]
-        emit(tmp_var1, gvar, '', '')
+        emit(tmp_var1, gvar, 'storeval', p[1].type)
         emit(tmp_var2, gvar, '+' + str(p[1].type), '1')
         p[0].type=p[1].type
-        emit(gvar, tmp_var2, '', '')
+        emit(gvar, tmp_var2, 'store', '')
         p[0].idName = tmp_var1
 
     def p_postfix_expression_4(self, p):
@@ -375,7 +375,8 @@ class CParser:
                 pr_error("%s on array is not allowed"%(p[1]))
             emit(tmp_var, gvar, '+' + str(p[2].type), '1')
             p[0].type=p[2].type
-            emit(gvar, tmp_var, '', '')
+            emit(gvar, tmp_var, 'store', '')
+            p[0].idName = tmp_var
             p[0].children = p[0].children+[p[1], p[2]]
 
     def p_unary_expression_2(self, p):
@@ -395,7 +396,8 @@ class CParser:
                 pr_error("%s on array is not allowed"%(p[1]))
         emit(tmp_var, gvar, '-' + str(p[2].type), '1')
         p[0].type=p[2].type
-        emit(gvar, tmp_var, '', '')
+        emit(gvar, tmp_var, 'store', '')
+        p[0].idName = tmp_var
         p[0].children = p[0].children+[p[1], p[2]]
 
     def p_unary_expression_3(self, p):
