@@ -454,6 +454,12 @@ class MIPSGenerator:
                     self.caller_saved.append(int(self.address_des[ins.dest]))
                     self.caller_saved.sort()
             self.address_des[ins.dest] = rdest.strip('$')
+            if is_fpr(rdest):
+                if int(rdest.strip("$f")) in self.fp_regs:
+                    self.fp_regs.remove(int(rdest.strip("$f")))
+            else:
+                if int(rdest.strip("$")) in self.caller_saved:
+                    self.caller_saved.remove(int(rdest.strip("$")))
         if rsrc1 != None and ins.next_use["src1"] == None:
             if rsrc1 != rdest:
                 self.register_des[rsrc1] = None
@@ -709,7 +715,16 @@ class MIPSGenerator:
                 var_type = tac_code.src2
             reg2 = self.prepare_reg(tac_code.src1, var_type)
             dest_reg = self.getreg()
-            self.mips_code += '\n\taddu %s, $0, %s' % (dest_reg, reg2)            
+            self.mips_code += '\n\taddu %s, $0, %s' % (dest_reg, reg2)
+
+        elif tac_code.op == "deref":
+            dest_reg = self.getreg()
+            if is_glo_var(tac_code.src1):
+                src1_reg = self.getreg()
+                self.load_var_addr_in_reg(tac_code.src1, src1_reg)
+            else:
+                src1_reg = self.prepare_reg(tac_code.src1)
+            self.mips_code += '\n\tlw %s, 0(%s)' % (dest_reg, src1_reg)      
         
         #print('------------------')
         print(self.address_des)

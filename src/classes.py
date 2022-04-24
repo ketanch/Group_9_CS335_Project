@@ -13,3 +13,4 @@ class Node:
         self.label=[]
         self.qualifier_list=[]
         self.array_list=[]
+        self.deref = False

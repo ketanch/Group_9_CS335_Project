@@ -122,17 +122,17 @@ class CParser:
     def p_constant_4(self, p):
         '''constant : CONST_HEX
         '''
-        p[0] = Node(name='constant', value=int(p[1], 16), type='int')
+        p[0] = Node(name='constant', value=str(int(p[1], 16)), type='int')
 
     def p_constant_5(self, p):
         '''constant : CONST_OCT
         '''
-        p[0] = Node(name='constant', value=int(p[1], 8), type='int')
+        p[0] = Node(name='constant', value=str(int(p[1], 8)), type='int')
 
     def p_constant_6(self, p):
         '''constant : CONST_BIN
         '''
-        p[0] = Node(name='constant', value=int(p[1], 2), type='int')
+        p[0] = Node(name='constant', value=str(int(p[1], 2)), type='int')
 
 
     def p_postfix_expression_1(self, p):
@@ -310,6 +310,7 @@ class CParser:
         tmp_var3 = create_new_var()
         emit(tmp_var3, tmp_var2, '+int', tmp_var1)
         p[0].idName = tmp_var3
+        p[0].deref = True
         try:
             p[0].type=get_var_type(p[1].idName,global_stack,global_node)
             index=int(p[3].value)
@@ -409,7 +410,7 @@ class CParser:
         if p[1].value == '&':
             var = 'mem'
         elif p[1].value == '*':
-            var = 'deref'
+            var = "deref"
         if(check_is_struct(p[2].idName,global_node,global_stack) ):
                 pr_error("%s on struct is not allowed"%(p[1]))
         if(check_is_array(p[2].idName,global_node,global_stack) ):
@@ -420,6 +421,7 @@ class CParser:
         p[0].idName = tmp_var
         p[0].value=p[2].idName
         p[0].type=get_var_type(p[2].idName,global_stack,global_node)
+        p[0].deref = True
 
     def p_unary_expression_4(self, p):
         '''unary_expression : SIZEOF '(' ID ')'
@@ -740,6 +742,10 @@ class CParser:
             p[0].value = p[3].value
             gvar1 = glo_subs(p[1] if isinstance(p[1],str) else p[1].idName, global_stack, global_node)
             gvar2 = glo_subs(p[3].idName, global_stack, global_node)
+            if p[3].deref == True:
+                tmp_var = create_new_var()
+                emit(tmp_var, gvar2, "deref", '')
+                gvar2 = tmp_var
             emit(gvar1, gvar2 if p[3].idName!='' else p[3].value, "store", p[3].type)
 
     def p_assignment_operator(self, p):
@@ -874,6 +880,10 @@ class CParser:
             gvar2 = glo_subs(p[3].idName if p[3].idName!="" else p[3].value, global_stack, global_node)
             # if(check_type_mismatch(p[1].type,p[3].type)):
             #     pr_error("Type mismatch in line %d"%(p.lineno(1)))
+            if p[3].deref == True:
+                tmp_var = create_new_var()
+                emit(tmp_var, gvar2, "deref", '')
+                gvar2 = tmp_var
             emit(gvar1,gvar2, "store", "")
             if len(global_stack)==0 and p[3].name!='constant':
                 pr_error("Only constants allowed in global declaration")
