@@ -194,7 +194,6 @@ global_tac_code=[]
 #This array contains global id for each variable
 program_variables = {}
 var_global_ctr = 0
-total_errors = 0
 
 #Assuming 64 bit architecture
 data_type_size = {

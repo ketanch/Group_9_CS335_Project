@@ -465,16 +465,19 @@ class MIPSGenerator:
         '''
         This function updates the descriptors after an instruction
         '''
-        #print("des1", self.address_des)
         if rdest != None:
             self.register_des[rdest.strip('$')] = ins.dest
             if ins.dest in self.address_des:
                 self.register_des[self.address_des[ins.dest]] = None
+                _reg = self.address_des[ins.dest]
                 if is_fpr(rdest):
-                    self.fp_regs.append(int(rdest.strip('$f')))
+                    # self.fp_regs.append(int(rdest.strip('$f')))
+                    self.fp_regs.append(int(_reg.strip('$f')))
                     self.fp_regs.sort()
                 else:
-                    self.caller_saved.append(int(self.address_des[ins.dest]))
+                    # self.caller_saved.append(int(rdest.strip('$')))
+                    self.caller_saved.append(int(_reg.strip('$')))
+                    #self.caller_saved.append(int(self.address_des[ins.dest]))
                     self.caller_saved.sort()
             self.address_des[ins.dest] = rdest.strip('$')
             if is_fpr(rdest):
@@ -600,6 +603,42 @@ class MIPSGenerator:
                     elif op == "/int":
                         cmd = "div"
                     self.mips_code += '\n\t%s %s, %s, %s' % (cmd, dest_reg, src1_reg, src2_reg)
+
+        if tac_code.op in ['+float', '*float', '/float', '-float']:
+            op = tac_code.op
+            src1_dec = is_float(tac_code.src1)
+            src2_dec = is_float(tac_code.src2)
+            if not src1_dec:
+                src1_reg = self.prepare_reg(tac_code.src1)
+            if not src2_dec:
+                src2_reg = self.prepare_reg(tac_code.src2)
+            dest_reg = self.getreg(tac_code, "float")
+            if src1_dec and src2_dec:
+                if op == "+float":
+                    res = float(tac_code.src1) + float(tac_code.src2)
+                elif op == "*float":
+                    res = float(tac_code.src1) * float(tac_code.src2)
+                elif op == "/float":
+                    res = float(tac_code.src1) / float(tac_code.src2)
+                elif op == "-float":
+                    res = float(tac_code.src1) - float(tac_code.src2)
+                self.load_constant_in_reg(res, "float", dest_reg)
+            else:
+                if src1_dec:
+                    src1_reg = self.getreg(type = "float")
+                    self.load_constant_in_reg(tac_code.src1, "float", src1_reg)
+                elif src2_dec:
+                    src2_reg = self.getreg(type = "float")
+                    self.load_constant_in_reg(tac_code.src2, "float", src2_reg)
+                if op == "+float":
+                    cmd = "add.s"
+                elif op == "-float":
+                    cmd = "sub.s"
+                elif op == "*float":
+                    cmd = "mul.s"
+                elif op == "/float":
+                    cmd = "div.s"
+                self.mips_code += '\n\t%s %s, %s, %s' % (cmd, dest_reg, src1_reg, src2_reg)
             
         #Done
         elif tac_code.op == 'gotofunc':
@@ -681,10 +720,6 @@ class MIPSGenerator:
                     self.mips_code += '\n\taddu $%d, $0, %s' % (val+3, self.prepare_reg(self.dest))
                 elif var_type:
                     pass
-                    #var_name = list(symbolTable[self.current_func]["func_parameters"]["arguments"].keys())[val]
-                    #var_type = symbolTable[self.current_func]["func_parameters"]["arguments"][var_name]
-                    #print(var_type)
-                    #self.load_constant_in_reg(tac_code.src1, var_type, self.getreg())
                 else:
                     raise SyntaxError
             else:
