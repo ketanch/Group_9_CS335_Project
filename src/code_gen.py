@@ -566,6 +566,8 @@ class MIPSGenerator:
             elif src1_dec:
                 if op == '+int':
                     self.mips_code += '\n\taddi %s, %s, %s' % (dest_reg, src2_reg, tac_code.src1)
+                elif op == '-int':
+                    self.mips_code += '\n\taddi %s, %s, -%s' % (dest_reg, src2_reg, tac_code.src1)
                 elif op in ['*int', '/int']:
                     src1_reg = self.getreg()
                     self.load_constant_in_reg(tac_code.src1, "int", src1_reg)
@@ -577,6 +579,8 @@ class MIPSGenerator:
             elif src2_dec:
                 if op == '+int':
                     self.mips_code += '\n\taddi %s, %s, %s' % (dest_reg, src1_reg, tac_code.src2)
+                elif op == '-int':
+                    self.mips_code += '\n\taddi %s, %s, -%s' % (dest_reg, src1_reg, tac_code.src2)
                 elif op in ['*int', '/int']:
                     src2_reg = self.getreg()
                     self.load_constant_in_reg(tac_code.src2, "int", src2_reg)
@@ -588,6 +592,8 @@ class MIPSGenerator:
             else:
                 if op == '+int':
                     self.mips_code += '\n\taddu %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
+                if op == '-int':
+                    self.mips_code += '\n\tsubu %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
                 elif op in ['*int', '/int']:
                     if op == "*int":
                         cmd = "mul"
@@ -785,6 +791,26 @@ class MIPSGenerator:
             self.mips_code += '\n\tslt $%s, %s, %s' % (t_reg1, src1_reg, src2_reg)
             self.mips_code += '\n\tslt $%s, %s, %s' % (t_reg2, src2_reg, src1_reg)
             self.mips_code += '\n\tnor %s, $%s, $%s' % (dest_reg, t_reg1, t_reg2)
+
+        elif tac_code.op == "!=int":
+            src2_reg = self.prepare_reg(tac_code.src2)
+            src1_reg = self.prepare_reg(tac_code.src1)
+            dest_reg = self.getreg()
+            self.mips_code += '\n\tsubu %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
+
+        elif tac_code.op == "<=int":
+            src2_reg = self.prepare_reg(tac_code.src2)
+            src1_reg = self.prepare_reg(tac_code.src1)
+            dest_reg = self.getreg()
+            self.mips_code += '\n\taddiu %s, %s, 1' % (src2_reg, src2_reg)
+            self.mips_code += '\n\tslt %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
+
+        elif tac_code.op == ">=int":
+            src2_reg = self.prepare_reg(tac_code.src2)
+            src1_reg = self.prepare_reg(tac_code.src1)
+            dest_reg = self.getreg()
+            self.mips_code += '\n\taddiu %s, %s, 1' % (src1_reg, src1_reg)
+            self.mips_code += '\n\tslt %s, %s, %s' % (dest_reg, src2_reg, src1_reg)
         
         #print('------------------')
         # print(self.address_des)
