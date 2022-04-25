@@ -1,10 +1,43 @@
-void pass(int a , int b , int c , int d , int e , int f , int g , int h , int i , int j)
-{
-    return ;
-}
 int main()
 {
-    int a = 1, b = 1, c = 1, d = 1, e = 1, f = 1, g = 1, h = 1, i = 1, j = 1 ;
-    pass(a , b , c , d , e , f , g , h, i , j) ;
-    return 0 ;
+    int i = 0;
+    printf("Linearly Increasing For Loop\n");
+    for ( i = 1 ; i < 10 ; i++ )
+    {
+        printf("i = ");
+        printf(i);
+        printf("\n");
+    }
+    printf("Exponentially Increasing For Loop\n");
+    for ( i = 1 ; i <= 100 ; i = i * 2 )
+    {
+        printf("i = ");
+        printf(i);
+        printf("\n");
+    }
+    printf("Linearly Decreasing For Loop\n");
+    for ( i = 9 ; i >= 0 ; i-- )
+    {
+        printf("i = ");
+        printf(i);
+        printf("\n");
+    }
+    printf("While Loop\n");
+    i = 0 ;
+    while ( i < 10 )
+    {
+        printf("i = ");
+        printf(i);
+        printf("\n");
+        i++;
+    }
+    printf("Do While Loop\n");
+    i = 0 ;
+    do
+    {
+        printf("i = ");
+        printf(i);
+        printf("\n");
+        i++;
+    } while ( i < 10 );
 }

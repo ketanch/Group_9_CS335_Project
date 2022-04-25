@@ -2,7 +2,7 @@
 This repository contains a C compiler made as part of compiler course (CS335). The compiler properties are:  
 **Source Language** : C  
 **Implementation Language** : python 3  
-**Target Architecture** : 64-bit MIPS
+**Target Architecture** : MIPS
 
 ## Group Members
 1. Ketan Chaturvedi (190428)
@@ -12,21 +12,11 @@ This repository contains a C compiler made as part of compiler course (CS335). T
 
 ## How to Run
 To run the parser, cd into the compiler directory and use the following command:
-```
+
 python3 src/parser.py <test file path>
-```
-The above command will tell whether the input file is accepted by grammar or not and generates a .dot file in *src* directory. Now to generate Parser Automata, use the following command:
-```
-# For output as PNG
-sfdp -x -Goverlap=scale -Tpng src/graph_file.dot > docs/graph_out.png
-# For output as PDF
-sfdp -x -Goverlap=scale -Tpdf src/graph_file.dot > docs/graph_out.pdf
-```
--------------------------------------------------------------------------------
-To run the lexer, cd into the compiler directory and use the following command:
-```
-python3 src/lexer.py <test file path>
-```
+
+The above command will generate an assembly file `out.s`, which can be loaded into spim simulator and then executed.
+The output of parser is in *output.s*
 
 ## Milestones
 1. **Milestone 1** : Added compiler source language specifications  
@@ -35,3 +25,6 @@ python3 src/lexer.py <test file path>
     - Wrote grammer rules for the C language
     - Removed several reduce/reduce and shift/reduce conflicts
     - Used action table and goto table to generate .dot file which when processed by Graphviz, gave a Parser Automaton image file
+4. **Milestone 4** : Added error handling to the parser
+5. **Milestone 5** : Generated TAC code for the input code 
+6. **Milestone 6** : Bootstrapped the complete compiler. Added functionalities for code generation.

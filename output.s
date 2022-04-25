@@ -1,9 +1,8 @@
 
 	.data
-$LC0:	.asciiz	"Value of a = "
-$LC1:	.asciiz	"\nValue at address stored in b = "
-$LC2:	.asciiz	"\nNew Value of a = "
-$LC3:	.asciiz	"\nValue at address stored in b = "
+$LC0:	.word	1066192076
+$LC1:	.word	1056964608
+$LC2:	.word	1069547520
 
 	.text
 main:
@@ -13,44 +12,17 @@ main:
 	addiu $29, $29, -4
 	addu $30, $0, $29
 	addiu $29, $29, -16
-	li $8, 1
-	sw $8, -12($30)
-	addiu $9, $30, -12
-	lw $10, 0($9)
-	sw $10, -8($30)
-	la $a0, $LC0
-	li $v0, 4
-	syscall
-	addu $4, $0, $8
-	li $v0, 1
-	syscall
-	la $a0, $LC1
-	li $v0, 4
-	syscall
-	addiu $9, $30, -8
-	lw $9, 0($9)
-	lw $10, 0($9)
-	sw $10, -16($30)
-	addu $4, $0, $10
-	li $v0, 1
-	syscall
-	li $9, 2
-	sw $9, -12($30)
-	la $a0, $LC2
-	li $v0, 4
-	syscall
-	addu $4, $0, $9
-	li $v0, 1
-	syscall
-	addiu $11, $30, -8
-	lw $8, 0($11)
-	lw $10, 0($8)
-	sw $10, -16($30)
-	la $a0, $LC3
-	li $v0, 4
-	syscall
-	addu $4, $0, $10
-	li $v0, 1
+	lwc1 $f0, $LC0
+	swc1 $f0, -4($30)
+	lwc1 $f1, $LC1
+	swc1 $f1, -8($30)
+	lwc1 $f2, $LC2
+	swc1 $f2, -12($30)
+	add.s $f0, $f0, $f2
+	div.s $f0, $f0, $f1
+	swc1 $f0, -16($30)
+	mov.s $f12, $f0
+	li $v0, 2
 	syscall
 	addiu $29, $29, 16
 	lw $30, 0($29)                           
