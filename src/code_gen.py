@@ -17,7 +17,6 @@ data_type_size = {
 
 #returns size of a data type
 def get_data_type_size(type, global_node, global_stack):
-    print(type, end = ' ')
     type_size = data_type_size.get(type, None)
     found = 0
     if type_size == None:
@@ -98,12 +97,10 @@ def create_basic_blocks(emit_arr):
         if i.op == 'label' or i.op == 'func_label':
             labels[i.dest] = ind
             leader_arr.append(ind)
-            print("XX", ind)
 
     for ind, i in enumerate(emit_arr):
         if '__main' in [i.dest, i.src1, i.src2]:
             leader_arr.append(ind)
-            print("YY", ind)
         if 'goto' in [i.dest, i.src1, i.src2]:
             label_ind = labels.get(i.dest, None)
             if label_ind == None:
@@ -111,7 +108,6 @@ def create_basic_blocks(emit_arr):
                 raise SyntaxError
             leader_arr.append(label_ind)
             leader_arr.append(ind + 1)
-            print("ZZ", label_ind, ind+1)
     leader_arr = list(set(leader_arr))
     leader_arr.sort()
     return leader_arr
@@ -125,10 +121,9 @@ def split_basic_blocks(emit_arr):
         out_arr += [emit_arr[block_pos[ind]:block_pos[ind+1]]]
     out_arr += [emit_arr[block_pos[-1]:]]
     
-    for emit_arr in out_arr:
-        print('=============================')
-        for i in emit_arr:
-            i.print()
+    # for emit_arr in out_arr:
+    #     for i in emit_arr:
+    #         i.print()
     return out_arr
 
 def is_fpr(reg):
@@ -166,9 +161,9 @@ def get_str(var):
         return False
 
 def variable_optimize(block):
-    for ind, i in enumerate(block):
-        print(ind, end = ' - ')
-        i.print()
+    # for ind, i in enumerate(block):
+    #     print(ind, end = ' - ')
+    #     i.print()
     symTab = {}
     for i in block:
         if is_temp(i.dest):
@@ -861,8 +856,8 @@ class MIPSGenerator:
         return self.data_code + '\n\n\t.text' + self.mips_code
 
 def generate_final_code(emit_arr):
-    for i in global_tac_code:
-        i.print()
+    # for i in global_tac_code:
+    #     i.print()
     mips_gen = MIPSGenerator()
     mips_gen.process_global_data(global_tac_code)
     ctr = 0
@@ -874,4 +869,4 @@ def generate_final_code(emit_arr):
             mips_gen.tac_to_mips(i, symbolTable)
         mips_gen.restore_maps()
     print(mips_gen.final_code())
-    open('tmp/a.s', 'w').write(mips_gen.final_code())
+    open('output.s', 'w').write(mips_gen.final_code())

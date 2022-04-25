@@ -1925,9 +1925,9 @@ class CParser:
             exit(0)
         print("Parsing completed successfully")
         gen_var_offset(symbolTable)
-        for ind, i in enumerate(tac_code):
-            print(ind, end = ' - ')
-            i.print()
+        # for ind, i in enumerate(tac_code):
+        #     print(ind, end = ' - ')
+        #     i.print()
         self.generate_dot_ast(result)
         self.generate_dot()
         #print(json.dumps(symbolTable,indent=4))
