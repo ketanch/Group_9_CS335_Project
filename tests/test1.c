@@ -1,19 +1,20 @@
+int func(int s) {
+    printf("Func called\n");
+    return 5;
+}
+
 int main() {
+    int i = 0;
     int a[5];
-    a[4] = 19;
-    a[5] = 6;
-    struct point {
-        int x;int y;
-    };
-    //struct point p;
-    //p.y = 8;
-    //struct point *q;
-    //q->y=5;
-    int r;
-    int *s = &r;
-    *s = 0x69;
-    int tt = r; //p.y;
-    printf(tt);
-    printf("\n");
-    printf(r);
+    while (i < 5) {
+        a[i] = i;
+        i++;
+    }
+    for (i=0;i<5;i++) {
+        int t = a[i];
+        printf(t);
+        printf("\n");
+    }
+    func(4);
+    printf(a);
 }

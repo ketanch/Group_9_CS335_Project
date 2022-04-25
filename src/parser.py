@@ -186,7 +186,7 @@ class CParser:
             try:
                 cond,n=check_no_of_arguments_mismatch(symbolTable[p[1].idName]["func_parameters"]["number_args"],p[3], global_node, global_stack)
             except:
-                return
+                pass
             if((symbolTable[p[1] if isinstance(p[1],str) else p[1].idName]["func_parameters"]["number_args"])):
                 pr_error("Expected %d arguments for function : %s at line number : %d" % ((symbolTable[p[1] if isinstance(p[1],str) else p[1].idName]["func_parameters"]["number_args"]),p[1] if isinstance(p[1],str) else p[1].idName,p.lineno(1)))
             if check_func_not_def(p[1].idName):
@@ -194,7 +194,7 @@ class CParser:
             elif check_variable_func_conflict(p[1].idName, symbolTable):
                 pr_error("Function %s not defined at line %d" % (p[1].idName, p.lineno(1)))
             p[0] = p[1]
-            emit(dest='__'+p[1] if isinstance(p[1],str) else '__'+p[1].idName, src1='', op='gotofunc', src2='')
+            emit(dest=p[1] if isinstance(p[1],str) else p[1].idName, src1='', op='gotofunc', src2='')
             # emit(dest=label,src1='',op='label',src2='')
             # return_stack.append(label)
             try:

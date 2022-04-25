@@ -1,4 +1,6 @@
-from audioop import mul
+import json
+
+from numpy import block
 from symbolTab import program_variables, symbolTable, global_tac_code
 
 data_type_size = {
@@ -93,29 +95,40 @@ def create_basic_blocks(emit_arr):
     leader_arr = []
     labels = {}
     for ind, i in enumerate(emit_arr):
-        if i[2] == 'label':
-            labels[i[0]] = ind
+        if i.op == 'label' or i.op == 'func_label':
+            labels[i.dest] = ind
+            leader_arr.append(ind)
+            print("XX", ind)
 
     for ind, i in enumerate(emit_arr):
-        if '__main' in i:
+        if '__main' in [i.dest, i.src1, i.src2]:
             leader_arr.append(ind)
-        if 'goto' in i:
-            label_ind = labels.get(i[0], None)
+            print("YY", ind)
+        if 'goto' in [i.dest, i.src1, i.src2]:
+            label_ind = labels.get(i.dest, None)
             if label_ind == None:
                 print("Error in parsing")
-                exit(0)
+                raise SyntaxError
             leader_arr.append(label_ind)
             leader_arr.append(ind + 1)
-    return leader_arr.sort()
+            print("ZZ", label_ind, ind+1)
+    leader_arr = list(set(leader_arr))
+    leader_arr.sort()
+    return leader_arr
 
 #Function to split emit_arr into blocks
 def split_basic_blocks(emit_arr):
     block_pos = create_basic_blocks(emit_arr)
+    print(block_pos)
     out_arr = []
-    offset = 0
-    for i in block_pos:
-        out_arr += [emit_arr[offset:i+1]]
-        offset = i+1
+    for ind in range(0, len(block_pos)-1):
+        out_arr += [emit_arr[block_pos[ind]:block_pos[ind+1]]]
+    out_arr += [emit_arr[block_pos[-1]:]]
+    
+    for emit_arr in out_arr:
+        print('=============================')
+        for i in emit_arr:
+            i.print()
     return out_arr
 
 def is_fpr(reg):
@@ -186,12 +199,13 @@ def variable_optimize(block):
             if symTab[ins.src2].get("next_use", None) == None:
                 symTab[ins.src2]["next_use"] = i
         if is_temp(ins.dest):
-            if ins.op == "store" or ins.op == "mem":
+            if ins.op == "store" or ins.op == "mem" or ins.op == "storeval":
                 symTab[ins.dest]["next_use"] = symTab[ins.dest].get("next_use", i)
                 if symTab[ins.dest]["state"] == "dead":
                     statement_data[i]["reuse"].append(ins.dest)
             else:
                 symTab[ins.dest]["state"] = "dead"
+    print(json.dumps(symTab,indent=4))
     for ind,i in enumerate(block):
         print(ind)
         if i.op == '':
@@ -322,6 +336,7 @@ class MIPSGenerator:
         self.address_des = {}
         self.fp_regs = [i for i in range(0,32)]
         self.caller_saved = [8,9,10,11,12,13,14,15,24,25]
+        self.const_caller_saved = [8,9,10,11,12,13,14,15,24,25]
         self.callee_saved = [16,17,18,19,20,21,22,23]
         self.local_labels_ctr = 0
 
@@ -381,6 +396,16 @@ class MIPSGenerator:
         Will get called if no more registers left
         '''
         pass
+
+    def restore_maps(self):
+        for i in range(1, 32):
+            self.register_des[str(i)] = None
+        for i in range(0, 32):
+            self.register_des["f"+str(i)] = None
+        self.address_des = {}
+        self.fp_regs = [i for i in range(0,32)]
+        self.caller_saved = [8,9,10,11,12,13,14,15,24,25]
+        self.callee_saved = [16,17,18,19,20,21,22,23]
 
     def getreg(self, ins = None, type = "int"):
         if ins != None:
@@ -574,7 +599,17 @@ class MIPSGenerator:
             
         #Done
         elif tac_code.op == 'gotofunc':
-            self.mips_code += '\n\tjal %s' % (tac_code.dest)
+            # push_ord = []
+            # temp_add_des = self.address_des.copy()
+            # temp_reg_des = self.register_des.copy()
+            # temp_fp_reg_des = self.fp_regs.copy()
+            # for i in self.const_caller_saved:
+            #     if self.register_des[str(i)] != None:
+            #         self.push("$" + str(i))
+            #         push_ord.append(str(i))
+            # self.mips_code += '\n\tjal %s' % (tac_code.dest)
+            # for i in reversed(push_ord):
+            #     self.pop("$" + i)
 
         elif tac_code.op == 'return':
             if tac_code.src1 == '':
@@ -608,7 +643,12 @@ class MIPSGenerator:
             self.mips_code += '\n\taddiu $29, $29, -%d' % (symbolTable[self.current_func]["stack_offset"])
 
         elif tac_code.op == 'goto':
-            pass
+            if tac_code.src1 == '':
+                self.mips_code += '\n\tj %s' % (tac_code.dest)
+            else:
+                src1_reg = self.prepare_reg(tac_code.src1)
+                if tac_code.src2 == 'eq 0':
+                    self.mips_code += '\n\tbeq %s, $0, %s' % (src1_reg, tac_code.dest)
 
         elif tac_code.op == 'store':
             src1 = tac_code.src1
@@ -724,16 +764,22 @@ class MIPSGenerator:
                 self.load_var_addr_in_reg(tac_code.src1, src1_reg)
             else:
                 src1_reg = self.prepare_reg(tac_code.src1)
-            self.mips_code += '\n\tlw %s, 0(%s)' % (dest_reg, src1_reg)      
+            self.mips_code += '\n\tlw %s, 0(%s)' % (dest_reg, src1_reg) 
+
+        elif tac_code.op == "<int":
+            src2_reg = self.prepare_reg(tac_code.src2)
+            src1_reg = self.prepare_reg(tac_code.src1)
+            dest_reg = self.getreg()
+            self.mips_code += '\n\tslt %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
         
         #print('------------------')
-        print(self.address_des)
-        print(self.caller_saved)
+        #print(self.address_des)
+        #print(self.caller_saved)
         self.update_desc(tac_code, src1_reg, src2_reg, dest_reg)
-        print(self.mips_code)
-        print(self.address_des)
-        print(self.caller_saved)
-        print('------------------')
+        #print(self.mips_code)
+        #print(self.address_des)
+        #print(self.caller_saved)
+        #print('------------------')
 
 
     def final_code(self):
@@ -745,9 +791,11 @@ def generate_final_code(emit_arr):
     mips_gen = MIPSGenerator()
     mips_gen.process_global_data(global_tac_code)
     ctr = 0
-    for i in emit_arr:
-        #print(ctr)
-        ctr += 1
-        mips_gen.tac_to_mips(i, symbolTable)
+    out_arr = split_basic_blocks(emit_arr)
+    for arr in out_arr:
+        for i in arr:
+            ctr += 1
+            mips_gen.tac_to_mips(i, symbolTable)
+        mips_gen.restore_maps()
     print(mips_gen.final_code())
     open('tmp/a.s', 'w').write(mips_gen.final_code())
