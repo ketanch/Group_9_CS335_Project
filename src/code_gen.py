@@ -115,7 +115,7 @@ def create_basic_blocks(emit_arr):
 #Function to split emit_arr into blocks
 def split_basic_blocks(emit_arr):
     block_pos = create_basic_blocks(emit_arr)
-    print(block_pos)
+    # print(block_pos)
     out_arr = []
     for ind in range(0, len(block_pos)-1):
         out_arr += [emit_arr[block_pos[ind]:block_pos[ind+1]]]
@@ -868,5 +868,5 @@ def generate_final_code(emit_arr):
             ctr += 1
             mips_gen.tac_to_mips(i, symbolTable)
         mips_gen.restore_maps()
-    print(mips_gen.final_code())
+    #print(mips_gen.final_code())
     open('output.s', 'w').write(mips_gen.final_code())
