@@ -1786,7 +1786,7 @@ class CParser:
         #for i in global_tac_code:
         #    print(i.print())
         gen_var_offset(symbolTable)
-        variable_optimize(tac_code)
+        #variable_optimize(tac_code)
         for ind, i in enumerate(tac_code):
             print(ind, end = ' - ')
             i.print()

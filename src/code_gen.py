@@ -92,7 +92,7 @@ def gen_var_offset(symbolTable):
 
 #Function for finding basic blocks position
 def create_basic_blocks(emit_arr):
-    leader_arr = []
+    leader_arr = [0]
     labels = {}
     for ind, i in enumerate(emit_arr):
         if i.op == 'label' or i.op == 'func_label':
@@ -205,9 +205,9 @@ def variable_optimize(block):
                     statement_data[i]["reuse"].append(ins.dest)
             else:
                 symTab[ins.dest]["state"] = "dead"
-    print(json.dumps(symTab,indent=4))
+    #print(json.dumps(symTab,indent=4))
     for ind,i in enumerate(block):
-        print(ind)
+    #    print(ind)
         if i.op == '':
             continue
         if i.src1 in symTab.keys():
@@ -247,8 +247,6 @@ def variable_optimize(block):
         #print(var_map)
         #print(reuse_var)
     return block
-
-#variable_optimize(block)
  
 def rep_float_int(n) :
     def float_bin(my_number, places = 3):
@@ -599,17 +597,17 @@ class MIPSGenerator:
             
         #Done
         elif tac_code.op == 'gotofunc':
-            # push_ord = []
-            # temp_add_des = self.address_des.copy()
-            # temp_reg_des = self.register_des.copy()
-            # temp_fp_reg_des = self.fp_regs.copy()
-            # for i in self.const_caller_saved:
-            #     if self.register_des[str(i)] != None:
-            #         self.push("$" + str(i))
-            #         push_ord.append(str(i))
-            # self.mips_code += '\n\tjal %s' % (tac_code.dest)
-            # for i in reversed(push_ord):
-            #     self.pop("$" + i)
+            push_ord = []
+            temp_add_des = self.address_des.copy()
+            temp_reg_des = self.register_des.copy()
+            temp_fp_reg_des = self.fp_regs.copy()
+            for i in self.const_caller_saved:
+                if self.register_des[str(i)] != None:
+                    self.push("$" + str(i))
+                    push_ord.append(str(i))
+            self.mips_code += '\n\tjal %s' % (tac_code.dest)
+            for i in reversed(push_ord):
+                self.pop("$" + i)
 
         elif tac_code.op == 'return':
             if tac_code.src1 == '':
@@ -771,15 +769,31 @@ class MIPSGenerator:
             src1_reg = self.prepare_reg(tac_code.src1)
             dest_reg = self.getreg()
             self.mips_code += '\n\tslt %s, %s, %s' % (dest_reg, src1_reg, src2_reg)
+
+        elif tac_code.op == ">int":
+            src2_reg = self.prepare_reg(tac_code.src2)
+            src1_reg = self.prepare_reg(tac_code.src1)
+            dest_reg = self.getreg()
+            self.mips_code += '\n\tslt %s, %s, %s' % (dest_reg, src2_reg, src1_reg)
+
+        elif tac_code.op == "==int":
+            src2_reg = self.prepare_reg(tac_code.src2)
+            src1_reg = self.prepare_reg(tac_code.src1)
+            dest_reg = self.getreg()
+            t_reg1 = self.caller_saved[0]
+            t_reg2 = self.caller_saved[1]
+            self.mips_code += '\n\tslt $%s, %s, %s' % (t_reg1, src1_reg, src2_reg)
+            self.mips_code += '\n\tslt $%s, %s, %s' % (t_reg2, src2_reg, src1_reg)
+            self.mips_code += '\n\tnor %s, $%s, $%s' % (dest_reg, t_reg1, t_reg2)
         
         #print('------------------')
-        #print(self.address_des)
-        #print(self.caller_saved)
+        # print(self.address_des)
+        # print(self.caller_saved)
         self.update_desc(tac_code, src1_reg, src2_reg, dest_reg)
-        #print(self.mips_code)
-        #print(self.address_des)
-        #print(self.caller_saved)
-        #print('------------------')
+        # print(self.mips_code)
+        # print(self.address_des)
+        # print(self.caller_saved)
+        # print('------------------')
 
 
     def final_code(self):
@@ -793,6 +807,7 @@ def generate_final_code(emit_arr):
     ctr = 0
     out_arr = split_basic_blocks(emit_arr)
     for arr in out_arr:
+        variable_optimize(arr)
         for i in arr:
             ctr += 1
             mips_gen.tac_to_mips(i, symbolTable)
