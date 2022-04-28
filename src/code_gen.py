@@ -38,7 +38,7 @@ def get_data_type_size(type, global_node, global_stack):
 #Useful for returning size when symbol table is complete 
 def get_type_size(var_data):
     if var_data["type"].endswith("0ptr"):
-        return 8
+        return 4
     elif var_data["type"].startswith("struct") or var_data["type"].startswith("union"):
         return var_data["elements"]["1size"]
     else:
@@ -779,6 +779,10 @@ class MIPSGenerator:
                 raise SyntaxError
             dest_reg = self.getreg()
             self.load_var_addr_in_reg(tac_code.src1, dest_reg)
+            t_reg = self.address_des.get(tac_code.src1, None)
+            if t_reg != None:
+                self.address_des.pop(tac_code.src1)
+                self.free_reg(t_reg)
 
         elif tac_code.op == "storeval":
             if not is_temp(tac_code.dest):

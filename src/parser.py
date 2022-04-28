@@ -295,6 +295,7 @@ class CParser:
                 offset = program_variables[gvar]["elements"][p[3]]["offset"]
             emit(tmp_var1, gvar, "mem", "")
             emit(tmp_var2, tmp_var1, '+int', str(offset))
+            p[0].deref = True
             p[0].idName = tmp_var2
         type_element=get_var_type_struct_element(p[1].idName,p[3],global_stack,global_node)
         #tmp_var2 = create_new_var()
@@ -455,6 +456,7 @@ class CParser:
             var = 'mem'
         elif p[1].value == '*':
             var = "deref"
+            p[0].deref = True
         if(check_is_struct(p[2].idName,global_node,global_stack) ):
 
                 self.total_errors += 1
@@ -469,7 +471,6 @@ class CParser:
         p[0].idName = tmp_var
         p[0].value=p[2].idName
         p[0].type=get_var_type(p[2].idName,global_stack,global_node)
-        p[0].deref = True
 
     def p_unary_expression_4(self, p):
         '''unary_expression : SIZEOF '(' ID ')'
@@ -1059,7 +1060,7 @@ class CParser:
             var_data = global_node["dataTypes"][struct_name][i]
             tlen = None
             if var_data["type"].endswith("0ptr"):
-                tlen = 8
+                tlen = 4
             else:
                 tlen = get_data_type_size(var_data["type"], global_node, global_stack)
             if tlen > max_len:
